@@ -14,7 +14,7 @@ declare_id!("79294eodprTU1vDDD5UcbEFhw57kyewDMKRyLMK2EQK3");
 
 #[program]
 pub mod collectible_vault {
-    use mpl_token_metadata::instructions::CreateMasterEditionV3;
+    use mpl_token_metadata::instructions::{CreateMasterEditionV3, VerifyCollectionV1};
 
     use super::*;
 
@@ -87,7 +87,8 @@ pub mod collectible_vault {
             ),
             1,
         )?;
-    
+
+
         Ok(())
     }
 
@@ -180,6 +181,34 @@ pub mod collectible_vault {
 
         Ok(())
     }
+
+    // // pub fn verify_collection(ctx: Context<VerifyCollection>) -> Result<()> {
+    //     // Create the verification instruction
+    //     let verify_ix = VerifyCollectionV1 {
+    //         metadata: ctx.accounts.metadata.key(),
+    //         collection_authority: ctx.accounts.collection_authority.key(),
+    //         payer: ctx.accounts.payer.key(),
+    //         collection_mint: ctx.accounts.collection_mint.key(),
+    //         collection: ctx.accounts.collection_metadata.key(),
+    //         collection_master_edition_account: ctx.accounts.collection_master_edition.key(),
+    //     }.instruction();
+    
+    //     // Execute the verify instruction with CPI
+    //     anchor_lang::solana_program::program::invoke(
+    //         &verify_ix,
+    //         &[
+    //             ctx.accounts.metadata.to_account_info(),
+    //             ctx.accounts.collection_authority.to_account_info(),
+    //             ctx.accounts.payer.to_account_info(),
+    //             ctx.accounts.collection_mint.to_account_info(),
+    //             ctx.accounts.collection_metadata.to_account_info(),
+    //             ctx.accounts.collection_master_edition.to_account_info(),
+    //             ctx.accounts.token_metadata_program.to_account_info(),
+    //         ],
+    //     )?;
+    
+    //     Ok(())
+    // }
 
     pub fn burn_nft(ctx: Context<BurnNFT>) -> Result<()> {
         // Burn the token
@@ -301,4 +330,31 @@ pub struct CreateCollection<'info> {
     /// CHECK: Metaplex master edition validation handles this
     #[account(mut)]
     pub master_edition: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+pub struct VerifyCollection<'info> {
+    /// CHECK: Metadata account of the NFT
+    #[account(mut)]
+    pub metadata: UncheckedAccount<'info>,
+    
+    /// CHECK: Collection authority (must be the update authority of the collection)
+    pub collection_authority: Signer<'info>,
+    
+    /// CHECK: Payer for transaction fees
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    
+    /// CHECK: Mint account of the collection
+    pub collection_mint: Account<'info, Mint>,
+    
+    /// CHECK: Metadata account of the collection
+    pub collection_metadata: UncheckedAccount<'info>,
+    
+    /// CHECK: Master edition account of the collection
+    pub collection_master_edition: UncheckedAccount<'info>,
+    
+    /// CHECK: Token Metadata Program
+    #[account(address = mpl_token_metadata::ID)]
+    pub token_metadata_program: UncheckedAccount<'info>,
 }
