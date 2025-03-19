@@ -14,7 +14,7 @@ declare_id!("79294eodprTU1vDDD5UcbEFhw57kyewDMKRyLMK2EQK3");
 
 #[program]
 pub mod collectible_vault {
-    use mpl_token_metadata::instructions::{CreateMasterEditionV3, VerifyCollectionV1};
+    use mpl_token_metadata::instructions::{CreateMasterEditionV3, VerifyCollection};
 
     use super::*;
 
@@ -35,7 +35,7 @@ pub mod collectible_vault {
             }]),
             collection: Some(Collection {
                 verified: false,
-                key: ctx.accounts.collection.key(),
+                key: ctx.accounts.collection_mint.key(),
             }),
             uses: Some(Uses {
                 use_method: UseMethod::Burn,
@@ -88,6 +88,62 @@ pub mod collectible_vault {
             1,
         )?;
 
+        // Create master edition
+        let master_edition_ix = mpl_token_metadata::instructions::CreateMasterEditionV3 {
+            edition: ctx.accounts.master_edition.key(),
+            mint: ctx.accounts.mint.key(),
+            update_authority: ctx.accounts.payer.key(),
+            mint_authority: ctx.accounts.payer.key(),
+            payer: ctx.accounts.payer.key(),
+            metadata: ctx.accounts.metadata.key(),
+            token_program: ctx.accounts.token_program.key(),
+            system_program: ctx.accounts.system_program.key(),
+            rent: Some(ctx.accounts.rent.key()),
+        }.instruction(mpl_token_metadata::instructions::CreateMasterEditionV3InstructionArgs {
+            max_supply: Some(0), // 0 means unique (non-fungible)
+        });
+
+        // Create master edition with CPI
+        anchor_lang::solana_program::program::invoke(
+            &master_edition_ix,
+            &[
+                ctx.accounts.master_edition.to_account_info(),
+                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.payer.to_account_info(),
+                ctx.accounts.metadata.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+                ctx.accounts.rent.to_account_info(),
+                ctx.accounts.token_metadata_program.to_account_info(),
+            ],
+        )?;
+
+        // Now verify the collection membership
+        // In the mint_nft function, replace the verify_collection part with this:
+        // Now verify the collection membership
+        let verify_ix = mpl_token_metadata::instructions::VerifySizedCollectionItem {
+            metadata: ctx.accounts.metadata.key(),
+            collection_authority: ctx.accounts.payer.key(),
+            payer: ctx.accounts.payer.key(),
+            collection_mint: ctx.accounts.collection_mint.key(),
+            collection: ctx.accounts.collection_metadata.key(),
+            collection_master_edition_account: ctx.accounts.collection_master_edition.key(),
+            collection_authority_record: None,
+        }.instruction();
+
+        // Verify collection with CPI
+        anchor_lang::solana_program::program::invoke(
+            &verify_ix,
+            &[
+                ctx.accounts.metadata.to_account_info(),
+                ctx.accounts.payer.to_account_info(),
+                ctx.accounts.payer.to_account_info(), // Collection authority is the payer
+                ctx.accounts.collection_mint.to_account_info(),
+                ctx.accounts.collection_metadata.to_account_info(),
+                ctx.accounts.collection_master_edition.to_account_info(),
+                ctx.accounts.token_metadata_program.to_account_info(),
+            ],
+        )?;
 
         Ok(())
     }
@@ -182,34 +238,6 @@ pub mod collectible_vault {
         Ok(())
     }
 
-    // // pub fn verify_collection(ctx: Context<VerifyCollection>) -> Result<()> {
-    //     // Create the verification instruction
-    //     let verify_ix = VerifyCollectionV1 {
-    //         metadata: ctx.accounts.metadata.key(),
-    //         collection_authority: ctx.accounts.collection_authority.key(),
-    //         payer: ctx.accounts.payer.key(),
-    //         collection_mint: ctx.accounts.collection_mint.key(),
-    //         collection: ctx.accounts.collection_metadata.key(),
-    //         collection_master_edition_account: ctx.accounts.collection_master_edition.key(),
-    //     }.instruction();
-    
-    //     // Execute the verify instruction with CPI
-    //     anchor_lang::solana_program::program::invoke(
-    //         &verify_ix,
-    //         &[
-    //             ctx.accounts.metadata.to_account_info(),
-    //             ctx.accounts.collection_authority.to_account_info(),
-    //             ctx.accounts.payer.to_account_info(),
-    //             ctx.accounts.collection_mint.to_account_info(),
-    //             ctx.accounts.collection_metadata.to_account_info(),
-    //             ctx.accounts.collection_master_edition.to_account_info(),
-    //             ctx.accounts.token_metadata_program.to_account_info(),
-    //         ],
-    //     )?;
-    
-    //     Ok(())
-    // }
-
     pub fn burn_nft(ctx: Context<BurnNFT>) -> Result<()> {
         // Burn the token
         anchor_spl::token::burn(
@@ -245,6 +273,10 @@ pub struct MintNFT<'info> {
     #[account(mut)]
     pub metadata: UncheckedAccount<'info>,
 
+    /// CHECK: Metaplex master edition validation handles this.
+    #[account(mut)]
+    pub master_edition: UncheckedAccount<'info>,
+
     // User token account
     #[account(
         init_if_needed,
@@ -272,6 +304,17 @@ pub struct MintNFT<'info> {
     #[account(mut)]
     /// CHECK: Metaplex will validate the collection account
     pub collection: UncheckedAccount<'info>,
+
+    // Collection accounts
+    /// CHECK: Collection mint
+    pub collection_mint: Account<'info, Mint>,
+
+    /// CHECK: Collection metadata account
+    #[account(mut)]
+    pub collection_metadata: UncheckedAccount<'info>,
+
+    /// CHECK: Collection master edition
+    pub collection_master_edition: UncheckedAccount<'info>
 }
 
 #[derive(Accounts)]

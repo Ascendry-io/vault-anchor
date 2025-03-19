@@ -45,7 +45,6 @@ async function createCollection() {
 
     // Get the associated token account for the payer
     const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, payerKeypair.publicKey);
-    const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
     // Derive the master edition address
     const [masterEditionAddress] = await PublicKey.findProgramAddress(
@@ -78,7 +77,10 @@ async function createCollection() {
     });
 
     console.log(`✅ Collection Created! TX: ${tx}`);
-    console.log(`Collection Mint Address: ${mint.publicKey.toBase58()}`);
+    console.log("IMPORTANT: Save these addresses for your mint_nft script");
+    console.log(`Collection Mint: ${mint.publicKey.toString()}`);
+    console.log(`Collection Metadata: ${metadataPDA.toString()}`);
+    console.log(`Collection Master Edition: ${masterEditionAddress.toString()}`);
 }
 
 export const getMasterEdition = async (mint: PublicKey) => {
