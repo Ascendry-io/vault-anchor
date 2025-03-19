@@ -1,4 +1,3 @@
-import * as bs58 from 'bs58';
 import * as dotenv from 'dotenv';
 import { Keypair } from '@solana/web3.js';
 

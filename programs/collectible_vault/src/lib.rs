@@ -2,7 +2,11 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use mpl_token_metadata::{
-    instructions::{CreateMetadataAccountV3, CreateMetadataAccountV3InstructionArgs},
+    instructions::{
+        CreateMetadataAccountV3, 
+        CreateMetadataAccountV3InstructionArgs,
+        CreateMasterEditionV3InstructionArgs
+    },
     types::{DataV2,Creator, Collection, CollectionDetails, Uses, UseMethod},
 };
 
@@ -10,6 +14,8 @@ declare_id!("79294eodprTU1vDDD5UcbEFhw57kyewDMKRyLMK2EQK3");
 
 #[program]
 pub mod collectible_vault {
+    use mpl_token_metadata::instructions::CreateMasterEditionV3;
+
     use super::*;
 
     pub fn mint_nft(
@@ -39,12 +45,10 @@ pub mod collectible_vault {
         };
 
         // Create Instruction Arguments
-
         let args = CreateMetadataAccountV3InstructionArgs {
             data: data.clone(),
             is_mutable: false,
             collection_details: None,
-            
         };
 
         // Create metadata
@@ -59,7 +63,6 @@ pub mod collectible_vault {
         }.instruction(args);
 
         // Creating metadata with CPI
-
         anchor_lang::solana_program::program::invoke(
             &metadata_ix,
             &[
@@ -73,7 +76,6 @@ pub mod collectible_vault {
         )?;
 
         // Mint token
-
         anchor_spl::token::mint_to(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -85,6 +87,7 @@ pub mod collectible_vault {
             ),
             1,
         )?;
+    
         Ok(())
     }
 
@@ -143,6 +146,36 @@ pub mod collectible_vault {
                 }
             ),
             1,
+        )?;
+
+        // Create master edition for the collection
+        let master_edition_ix = CreateMasterEditionV3 {
+            edition: ctx.accounts.master_edition.key(),
+            mint: ctx.accounts.mint.key(),
+            update_authority: ctx.accounts.payer.key(),
+            mint_authority: ctx.accounts.payer.key(),
+            payer: ctx.accounts.payer.key(),
+            metadata: ctx.accounts.metadata.key(),
+            token_program: ctx.accounts.token_program.key(),
+            system_program: ctx.accounts.system_program.key(),
+            rent: Some(ctx.accounts.rent.key()),
+        }.instruction(CreateMasterEditionV3InstructionArgs {
+            max_supply: Some(0), // 0 means unlimited editions for collection
+        });
+
+        // Creating master edition with CPI
+        anchor_lang::solana_program::program::invoke(
+            &master_edition_ix,
+            &[
+                ctx.accounts.master_edition.to_account_info(),
+                ctx.accounts.mint.to_account_info(),
+                ctx.accounts.payer.to_account_info(),
+                ctx.accounts.metadata.to_account_info(),
+                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+                ctx.accounts.rent.to_account_info(),
+                ctx.accounts.token_metadata_program.to_account_info(),
+            ],
         )?;
 
         Ok(())
@@ -264,4 +297,8 @@ pub struct CreateCollection<'info> {
     /// CHECK: Validated in CPI
     #[account(address = mpl_token_metadata::ID)]
     pub token_metadata_program: UncheckedAccount<'info>,
+
+    /// CHECK: Metaplex master edition validation handles this
+    #[account(mut)]
+    pub master_edition: UncheckedAccount<'info>,
 }
