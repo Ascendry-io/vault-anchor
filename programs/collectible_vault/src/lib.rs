@@ -1,30 +1,34 @@
+pub mod state;
+pub mod errors;
+pub mod constants;
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use constants::get_admin_account_pubkey;
 use mpl_token_metadata::{
     instructions::{
-        CreateMetadataAccountV3, 
-        CreateMetadataAccountV3InstructionArgs,
-        CreateMasterEditionV3InstructionArgs
+        CreateMasterEditionV3, CreateMasterEditionV3InstructionArgs, CreateMetadataAccountV3,
+        CreateMetadataAccountV3InstructionArgs, VerifySizedCollectionItem,
     },
-    types::{DataV2,Creator, Collection, CollectionDetails, Uses, UseMethod},
+    types::{Collection, CollectionDetails, Creator, DataV2, UseMethod, Uses},
 };
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{Mint, Token, TokenAccount};
+use state::CollectionCounter;
 
 declare_id!("79294eodprTU1vDDD5UcbEFhw57kyewDMKRyLMK2EQK3");
 
 #[program]
 pub mod collectible_vault {
-    use mpl_token_metadata::instructions::{CreateMasterEditionV3, VerifyCollection};
-
     use super::*;
 
-    pub fn mint_nft(
-        ctx: Context<MintNFT>,
-        product_detail_uri: String
-    ) -> Result<()> {
+    pub fn mint_nft(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
+        let collection_counter = &mut ctx.accounts.collection_counter;
+        collection_counter.count += 1;
+
+        let name = format!("Banked Item #{}", collection_counter.count);
+
 
         let data = DataV2 {
-            name: "Bank".to_string(),
+            name: name,
             symbol: "BT".to_string(),
             uri: product_detail_uri,
             seller_fee_basis_points: 500,
@@ -60,7 +64,8 @@ pub mod collectible_vault {
             payer: ctx.accounts.payer.key(),
             system_program: ctx.accounts.system_program.key(),
             rent: Some(ctx.accounts.rent.key()),
-        }.instruction(args);
+        }
+        .instruction(args);
 
         // Creating metadata with CPI
         anchor_lang::solana_program::program::invoke(
@@ -83,13 +88,13 @@ pub mod collectible_vault {
                     mint: ctx.accounts.mint.to_account_info(),
                     to: ctx.accounts.token_account.to_account_info(),
                     authority: ctx.accounts.payer.to_account_info(),
-                }
+                },
             ),
             1,
         )?;
 
         // Create master edition
-        let master_edition_ix = mpl_token_metadata::instructions::CreateMasterEditionV3 {
+        let master_edition_ix = CreateMasterEditionV3 {
             edition: ctx.accounts.master_edition.key(),
             mint: ctx.accounts.mint.key(),
             update_authority: ctx.accounts.payer.key(),
@@ -99,7 +104,8 @@ pub mod collectible_vault {
             token_program: ctx.accounts.token_program.key(),
             system_program: ctx.accounts.system_program.key(),
             rent: Some(ctx.accounts.rent.key()),
-        }.instruction(mpl_token_metadata::instructions::CreateMasterEditionV3InstructionArgs {
+        }
+        .instruction(CreateMasterEditionV3InstructionArgs {
             max_supply: Some(0), // 0 means unique (non-fungible)
         });
 
@@ -121,7 +127,7 @@ pub mod collectible_vault {
         // Now verify the collection membership
         // In the mint_nft function, replace the verify_collection part with this:
         // Now verify the collection membership
-        let verify_ix = mpl_token_metadata::instructions::VerifySizedCollectionItem {
+        let verify_ix = VerifySizedCollectionItem {
             metadata: ctx.accounts.metadata.key(),
             collection_authority: ctx.accounts.payer.key(),
             payer: ctx.accounts.payer.key(),
@@ -129,7 +135,8 @@ pub mod collectible_vault {
             collection: ctx.accounts.collection_metadata.key(),
             collection_master_edition_account: ctx.accounts.collection_master_edition.key(),
             collection_authority_record: None,
-        }.instruction();
+        }
+        .instruction();
 
         // Verify collection with CPI
         anchor_lang::solana_program::program::invoke(
@@ -149,6 +156,10 @@ pub mod collectible_vault {
     }
 
     pub fn create_collection(ctx: Context<CreateCollection>) -> Result<()> {
+        // Initialize collection counter
+        ctx.accounts.collection_counter.count = 0;
+        ctx.accounts.collection_counter.collection_mint = ctx.accounts.mint.key();
+
         // Create metadata for the collection
         let data = DataV2 {
             name: "Bank Things".to_string(),
@@ -178,7 +189,8 @@ pub mod collectible_vault {
             payer: ctx.accounts.payer.key(),
             system_program: ctx.accounts.system_program.key(),
             rent: Some(ctx.accounts.rent.key()),
-        }.instruction(args);
+        }
+        .instruction(args);
 
         anchor_lang::solana_program::program::invoke(
             &metadata_ix,
@@ -200,7 +212,7 @@ pub mod collectible_vault {
                     mint: ctx.accounts.mint.to_account_info(),
                     to: ctx.accounts.token_account.to_account_info(),
                     authority: ctx.accounts.payer.to_account_info(),
-                }
+                },
             ),
             1,
         )?;
@@ -216,7 +228,8 @@ pub mod collectible_vault {
             token_program: ctx.accounts.token_program.key(),
             system_program: ctx.accounts.system_program.key(),
             rent: Some(ctx.accounts.rent.key()),
-        }.instruction(CreateMasterEditionV3InstructionArgs {
+        }
+        .instruction(CreateMasterEditionV3InstructionArgs {
             max_supply: Some(0), // 0 means unlimited editions for collection
         });
 
@@ -247,7 +260,7 @@ pub mod collectible_vault {
                     mint: ctx.accounts.mint.to_account_info(),
                     from: ctx.accounts.token_account.to_account_info(),
                     authority: ctx.accounts.owner.to_account_info(),
-                }
+                },
             ),
             1,
         )?;
@@ -258,7 +271,6 @@ pub mod collectible_vault {
 
 #[derive(Accounts)]
 pub struct MintNFT<'info> {
-    
     #[account(
         init,
         payer = payer,
@@ -286,7 +298,7 @@ pub struct MintNFT<'info> {
     )]
     pub token_account: Account<'info, TokenAccount>,
 
-    #[account(mut)]
+    #[account(mut, constraint = payer.key() == get_admin_account_pubkey() @ errors::ErrorCode::UnauthorizedTransactionSigner)]
     // Payer account
     pub payer: Signer<'info>,
     // System programs
@@ -314,7 +326,15 @@ pub struct MintNFT<'info> {
     pub collection_metadata: UncheckedAccount<'info>,
 
     /// CHECK: Collection master edition
-    pub collection_master_edition: UncheckedAccount<'info>
+    pub collection_master_edition: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"collection_counter", collection_mint.key().as_ref()],
+        bump,
+        constraint = collection_counter.collection_mint == collection_mint.key() @ errors::ErrorCode::CollectionMintDoesNotMatch
+    )]
+    pub collection_counter: Account<'info, CollectionCounter>,
 }
 
 #[derive(Accounts)]
@@ -358,7 +378,7 @@ pub struct CreateCollection<'info> {
     )]
     pub token_account: Account<'info, TokenAccount>,
 
-    #[account(mut)]
+    #[account(mut, constraint = payer.key() == get_admin_account_pubkey() @ errors::ErrorCode::UnauthorizedTransactionSigner)]
     pub payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
@@ -373,31 +393,13 @@ pub struct CreateCollection<'info> {
     /// CHECK: Metaplex master edition validation handles this
     #[account(mut)]
     pub master_edition: UncheckedAccount<'info>,
-}
 
-#[derive(Accounts)]
-pub struct VerifyCollection<'info> {
-    /// CHECK: Metadata account of the NFT
-    #[account(mut)]
-    pub metadata: UncheckedAccount<'info>,
-    
-    /// CHECK: Collection authority (must be the update authority of the collection)
-    pub collection_authority: Signer<'info>,
-    
-    /// CHECK: Payer for transaction fees
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    
-    /// CHECK: Mint account of the collection
-    pub collection_mint: Account<'info, Mint>,
-    
-    /// CHECK: Metadata account of the collection
-    pub collection_metadata: UncheckedAccount<'info>,
-    
-    /// CHECK: Master edition account of the collection
-    pub collection_master_edition: UncheckedAccount<'info>,
-    
-    /// CHECK: Token Metadata Program
-    #[account(address = mpl_token_metadata::ID)]
-    pub token_metadata_program: UncheckedAccount<'info>,
+    #[account(
+        init,
+        seeds = [b"collection_counter", mint.key().as_ref()],
+        payer = payer,
+        bump,
+        space = CollectionCounter::INIT_SPACE
+    )]
+    pub collection_counter: Account<'info, CollectionCounter>,
 }
