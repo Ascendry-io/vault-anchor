@@ -1,20 +1,23 @@
 pub mod state;
 pub mod errors;
 pub mod constants;
-use anchor_lang::prelude::*;
-use constants::get_admin_account_pubkey;
-use mpl_token_metadata::{
-    instructions::{
-        CreateMasterEditionV3, CreateMasterEditionV3InstructionArgs, CreateMetadataAccountV3,
-        CreateMetadataAccountV3InstructionArgs, VerifySizedCollectionItem,
-    },
-    types::{Collection, CollectionDetails, Creator, DataV2, UseMethod, Uses},
+pub mod instructions;
+ 
+use {
+    anchor_lang::prelude::*,
+    instructions::create_collection::*,
+    instructions::mint_nft::*,
+    instructions::burn_nft::*,
+    mpl_token_metadata::{
+        instructions::{
+            CreateMasterEditionV3, CreateMasterEditionV3InstructionArgs, CreateMetadataAccountV3,
+            CreateMetadataAccountV3InstructionArgs, VerifySizedCollectionItem,
+        },
+        types::{Collection, CollectionDetails, Creator, DataV2, UseMethod, Uses},
+    }
 };
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount};
-use state::CollectionCounter;
 
-declare_id!("79294eodprTU1vDDD5UcbEFhw57kyewDMKRyLMK2EQK3");
+declare_id!("2iaNEJN6GhTknsfLzdcc8yEZzYCSoiU1fiJNd5wywGNL");
 
 #[program]
 pub mod collectible_vault {
@@ -267,139 +270,4 @@ pub mod collectible_vault {
 
         Ok(())
     }
-}
-
-#[derive(Accounts)]
-pub struct MintNFT<'info> {
-    #[account(
-        init,
-        payer = payer,
-        mint::decimals = 0,
-        mint::authority = payer.key(),
-        mint::freeze_authority = payer.key(),
-    )]
-    pub mint: Account<'info, Mint>,
-
-    // Metadata account
-    /// CHECK: Metaplex metadata validation handles this.
-    #[account(mut)]
-    pub metadata: UncheckedAccount<'info>,
-
-    /// CHECK: Metaplex master edition validation handles this.
-    #[account(mut)]
-    pub master_edition: UncheckedAccount<'info>,
-
-    // User token account
-    #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = mint,
-        associated_token::authority = payer,
-    )]
-    pub token_account: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = payer.key() == get_admin_account_pubkey() @ errors::ErrorCode::UnauthorizedTransactionSigner)]
-    // Payer account
-    pub payer: Signer<'info>,
-    // System programs
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>,
-
-    //Metaplex program
-    /// CHECK: Metaplex program ID check
-    #[account(address = mpl_token_metadata::ID)]
-    pub token_metadata_program: UncheckedAccount<'info>,
-
-    // Metaplex collection that already exists
-    #[account(mut)]
-    /// CHECK: Metaplex will validate the collection account
-    pub collection: UncheckedAccount<'info>,
-
-    // Collection accounts
-    /// CHECK: Collection mint
-    pub collection_mint: Account<'info, Mint>,
-
-    /// CHECK: Collection metadata account
-    #[account(mut)]
-    pub collection_metadata: UncheckedAccount<'info>,
-
-    /// CHECK: Collection master edition
-    pub collection_master_edition: UncheckedAccount<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"collection_counter", collection_mint.key().as_ref()],
-        bump,
-        constraint = collection_counter.collection_mint == collection_mint.key() @ errors::ErrorCode::CollectionMintDoesNotMatch
-    )]
-    pub collection_counter: Account<'info, CollectionCounter>,
-}
-
-#[derive(Accounts)]
-pub struct BurnNFT<'info> {
-    #[account(mut)]
-    pub mint: Account<'info, Mint>,
-
-    #[account(
-        mut,
-        associated_token::mint = mint,
-        associated_token::authority = owner,
-    )]
-    pub token_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub owner: Signer<'info>,
-
-    pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct CreateCollection<'info> {
-    #[account(
-        init,
-        payer = payer,
-        mint::decimals = 0,
-        mint::authority = payer.key(),
-        mint::freeze_authority = payer.key(),
-    )]
-    pub mint: Account<'info, Mint>,
-
-    /// CHECK: Metaplex will create this account
-    #[account(mut)]
-    pub metadata: UncheckedAccount<'info>,
-
-    #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = mint,
-        associated_token::authority = payer,
-    )]
-    pub token_account: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = payer.key() == get_admin_account_pubkey() @ errors::ErrorCode::UnauthorizedTransactionSigner)]
-    pub payer: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub rent: Sysvar<'info, Rent>,
-
-    /// CHECK: Validated in CPI
-    #[account(address = mpl_token_metadata::ID)]
-    pub token_metadata_program: UncheckedAccount<'info>,
-
-    /// CHECK: Metaplex master edition validation handles this
-    #[account(mut)]
-    pub master_edition: UncheckedAccount<'info>,
-
-    #[account(
-        init,
-        seeds = [b"collection_counter", mint.key().as_ref()],
-        payer = payer,
-        bump,
-        space = CollectionCounter::INIT_SPACE
-    )]
-    pub collection_counter: Account<'info, CollectionCounter>,
 }
