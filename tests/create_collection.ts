@@ -1,68 +1,121 @@
 import * as anchor from '@coral-xyz/anchor';
-import { Program } from '@coral-xyz/anchor';
-import { CollectibleVault } from '../target/types/collectible_vault';
-import { Keypair, SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey, Connection, clusterApiUrl, SystemProgram } from '@solana/web3.js';
 import {
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  getAssociatedTokenAddress,
+	TOKEN_PROGRAM_ID,
+	getAssociatedTokenAddress,
+	ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
+import { getAlternativePayerKeypair, getPayerKeypair } from '../utils/utils';
+import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
+import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
 
-async function main() {
-  const provider = anchor.AnchorProvider.env();
-  anchor.setProvider(provider);
+export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
+	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
+);
+describe('Create Collection', () => {
+	const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+	const payerWallet = getPayerKeypair();
+	const altPayerKeypair = getAlternativePayerKeypair();
 
-  const program = anchor.workspace.CollectibleVault as Program<CollectibleVault>;
+	const wallet = new anchor.Wallet(payerWallet);
+	const provider = new anchor.AnchorProvider(connection, wallet, {
+		preflightCommitment: 'confirmed',
+	});
 
-  // Generate new keypair for the mint
-  const mintKeypair = Keypair.generate();
+	anchor.setProvider(provider);
+	const program = new anchor.Program<CollectibleVault>(idl as CollectibleVault, provider);
 
-  // Derive the metadata PDA
-  const [metadataAddress] = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('metadata'),
-      new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID).toBuffer(),
-      mintKeypair.publicKey.toBuffer(),
-    ],
-    new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID)
-  );
+	let mint: Keypair;
+	let metadataPDA: PublicKey;
+	let masterEditionAddress: PublicKey;
+	let collectionCounterPDA: PublicKey;
 
-  // Get the token account address
-  const tokenAccount = await getAssociatedTokenAddress(
-    mintKeypair.publicKey,
-    provider.wallet.publicKey
-  );
+	before(async () => {
+		mint = Keypair.generate();
 
-  console.log('Mint:', mintKeypair.publicKey.toString());
-  console.log('Metadata:', metadataAddress.toString());
-  console.log('Token Account:', tokenAccount.toString());
+		// Derive PDA for metadata and master edition
+		const [metadata] = await PublicKey.findProgramAddress(
+			[Buffer.from('metadata'), METADATA_PROGRAM_ID.toBuffer(), mint.publicKey.toBuffer()],
+			METADATA_PROGRAM_ID
+		);
 
-  const createCollectionAccounts = {
-    mint: mintKeypair.publicKey,
-    metadata: metadataAddress,
-    tokenAccount: tokenAccount,
-    payer: provider.wallet.publicKey,
-    systemProgram: SystemProgram.programId,
-    tokenProgram: TOKEN_PROGRAM_ID,
-    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-    rent: SYSVAR_RENT_PUBKEY,
-    tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
-  };
-  // Create collection
-  const tx = await program.methods
-    .createCollection()
-    .accounts(createCollectionAccounts)
-    .signers([mintKeypair])
-    .rpc();
+		metadataPDA = metadata;
 
-  console.log('Transaction signature:', tx);
-}
+		const [masterEdition] = await PublicKey.findProgramAddress(
+			[
+				Buffer.from('metadata'),
+				METADATA_PROGRAM_ID.toBuffer(),
+				mint.publicKey.toBuffer(),
+				Buffer.from('edition'),
+			],
+			METADATA_PROGRAM_ID
+		);
+		masterEditionAddress = masterEdition;
 
-main()
-  .then(() => {
-    console.log('Done');
-  })
-  .catch((error) => {
-    console.error('Error:', error);
-  });
+		const [collectionCounter] = await PublicKey.findProgramAddress(
+			[Buffer.from('collection_counter'), mint.publicKey.toBuffer()],
+			program.programId
+		);
+		collectionCounterPDA = collectionCounter;
+	});
+
+	it('should fail to create a collection with UnauthorizedTransactionSigner', async () => {
+		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, altPayerKeypair.publicKey);
+
+		try {
+			await program.rpc.createCollection({
+				accounts: {
+					mint: mint.publicKey,
+					metadata: metadataPDA,
+					tokenAccount: tokenAccount,
+					payer: altPayerKeypair.publicKey, // This is an unauthorized payer
+					systemProgram: SystemProgram.programId,
+					tokenProgram: TOKEN_PROGRAM_ID,
+					associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+					rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+					tokenMetadataProgram: METADATA_PROGRAM_ID,
+					masterEdition: masterEditionAddress,
+					collectionCounter: collectionCounterPDA,
+				},
+				signers: [mint, altPayerKeypair],
+			});
+
+			// If it does not throw, fail the test
+			throw new Error('Test failed: transaction did not throw an error');
+		} catch (err) {
+			console.log('Expected error:', err);
+
+			// Ensure the error matches the expected UnauthorizedTransactionSigner error
+			if (!err.message.includes('UnauthorizedTransactionSigner')) {
+				throw new Error(`Unexpected error: ${err.message}`);
+			}
+		}
+	});
+
+	it('should create a collection', async () => {
+		// Generate the associated token account for the mint
+		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, payerWallet.publicKey);
+		const tx = await program.rpc.createCollection({
+			accounts: {
+				mint: mint.publicKey,
+				metadata: metadataPDA,
+				tokenAccount: tokenAccount,
+				payer: payerWallet.publicKey,
+				systemProgram: SystemProgram.programId,
+				tokenProgram: TOKEN_PROGRAM_ID,
+				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+				rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+				tokenMetadataProgram: METADATA_PROGRAM_ID,
+				masterEdition: masterEditionAddress,
+				collectionCounter: collectionCounterPDA,
+			},
+			signers: [mint, payerWallet],
+		});
+
+		console.log(`Collection created! Transaction: ${tx}`);
+		console.log(`Collection Mint Address: ${mint.publicKey.toString()}`);
+		console.log(`Metadata Address: ${metadataPDA.toString()}`);
+		console.log(`Master Edition Address: ${masterEditionAddress.toString()}`);
+		console.log(`Collection Counter Address: ${collectionCounterPDA.toString()}`);
+	});
+});

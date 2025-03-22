@@ -7,7 +7,7 @@ import {
   SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js';
 
-import { getPayerKeypair } from './utils';
+import { getPayerKeypair } from '../utils/utils';
 import { COLLECTION_MINT, METADATA_PROGRAM_ID } from './constants';
 
 

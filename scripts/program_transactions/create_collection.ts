@@ -5,7 +5,7 @@ import {
   getAssociatedTokenAddress,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { getPayerKeypair } from '../utils';
+import { getAlternativePayerKeypair, getPayerKeypair } from '../../utils/utils';
 import idl from '../../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../../target/types/collectible_vault'; // Import TypeScript types
 import { METADATA_PROGRAM_ID } from '../constants';

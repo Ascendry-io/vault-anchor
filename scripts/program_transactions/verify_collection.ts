@@ -1,6 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Keypair, PublicKey, Connection, clusterApiUrl } from '@solana/web3.js';
-import { getPayerKeypair } from '../utils';
+import { getPayerKeypair } from '../../utils/utils';
 import idl from '../../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../../target/types/collectible_vault'; // Import TypeScript types
 import { METADATA_PROGRAM_ID } from '../constants';

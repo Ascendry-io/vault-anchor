@@ -11,3 +11,9 @@ export function getPayerKeypair(): Keypair {
   const secretKeyArray = JSON.parse(secretKey58); // Parse JSON
   return Keypair.fromSecretKey(Uint8Array.from(secretKeyArray));
 }
+
+export function getAlternativePayerKeypair(): Keypair {
+  const secretKey58 = process.env.ALT_PRIVATE_KEY_BASE_58 || '';
+  const secretKeyArray = JSON.parse(secretKey58); // Parse JSON
+  return Keypair.fromSecretKey(Uint8Array.from(secretKeyArray));
+}
