@@ -10,5 +10,5 @@ pub struct CollectionCounter {
 impl CollectionCounter {
     pub const INIT_SPACE: usize = 8 +    // discriminator
         32 +    // collection_mint (Pubkey)
-        8;      // count (u64)
-}       
+        8; // count (u64)
+}

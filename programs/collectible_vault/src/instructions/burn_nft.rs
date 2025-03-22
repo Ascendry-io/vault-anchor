@@ -1,5 +1,7 @@
-use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use {
+    anchor_lang::prelude::*,
+    anchor_spl::token::{Mint, Token, TokenAccount},
+};
 
 #[derive(Accounts)]
 pub struct BurnNFT<'info> {
@@ -17,4 +19,21 @@ pub struct BurnNFT<'info> {
     pub owner: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
+}
+
+pub fn handle(ctx: Context<BurnNFT>) -> Result<()> {
+    // Burn the token
+    anchor_spl::token::burn(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::Burn {
+                mint: ctx.accounts.mint.to_account_info(),
+                from: ctx.accounts.token_account.to_account_info(),
+                authority: ctx.accounts.owner.to_account_info(),
+            },
+        ),
+        1,
+    )?;
+
+    Ok(())
 }
