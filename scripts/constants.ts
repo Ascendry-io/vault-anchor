@@ -5,17 +5,17 @@ export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 );
 
 export const COLLECTION_MINT: PublicKey = new PublicKey(
-  'BTwwZtg695DNqD31BUyk9QceeM1HKmcg9PFKcepAEHx1'
+  'BtomkXhevjUMB6RXspXsBjeRVq1oY3CHD8micyTfVdDU'
 );
 
 export const COLLECTION_METADATA: PublicKey = new PublicKey(
-  'FsVV7u9G7rC1HvLmVJYFUhvLKZNcgWNbmBedjthsTq8P'
+  'HeRCnPP1KFD57SS5bSW8nbVjVqXmnf9NEfsqASAGqm7p'
 );
 
 export const COLLECTION_MASTER_EDITION: PublicKey = new PublicKey(
-  'F2fAEMJg761nt8HGF6p2r4CuJFiG2GS7iSXosHddBbFy'
+  '2qY7g4nWj44Un1QBAVkERYPGY8XV9uk4gEN1PDpgwJ71'
 );
 
 export const COLLECTION_COUNTER: PublicKey = new PublicKey(
-  'EBvPhe7Gp8gUHKKRdQQZfbbL6Cu7R7ftpDHjP7KuTs3C'
+  '3Yv5BUFPRodJNrZna8WViwkChjP8ToqxknZ3u66V3pJG'
 );
