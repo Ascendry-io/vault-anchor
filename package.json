@@ -3,7 +3,7 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "test": "anchor test tests/create_collection.ts && anchor test tests/mint_nft.ts"
+    "test": "anchor test tests/create_collection.ts && anchor test tests/mint_nft.ts && anchor test tests/loan_flow.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

@@ -54,7 +54,7 @@ pub struct CreateCollection<'info> {
     pub master_edition: UncheckedAccount<'info>,
 
     #[account(
-        init_if_needed,
+        init,
         seeds = [b"vault_collection_counter"],
         payer = payer,
         bump,

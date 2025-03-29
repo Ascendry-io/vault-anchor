@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-collectible_vault = "A45MQouCDPocVAwjraBheaXGpupySU4fhVvu3oB5GxxT"
+collectible_vault = "HAWWTcRT7okdEEUWg1qfKwsrVVUctqvYtnh8HbFoAnvL"
 
 [registry]
 url = "https://api.apr.dev"

@@ -7,4 +7,34 @@ pub enum ErrorCode {
 
     #[msg("Only Administrative Account can directly interact with this program")]
     UnauthorizedTransactionSigner,
+
+    #[msg("Loan is already active")]
+    LoanAlreadyActive,
+    
+    #[msg("Invalid loan duration")]
+    InvalidLoanDuration,
+    
+    #[msg("Invalid interest rate")]
+    InvalidInterestRate,
+
+    #[msg("Invalid NFT account")]
+    InvalidNFTAccount,
+    
+    #[msg("Insufficient funds for loan")]
+    InsufficientFunds,
+    
+    #[msg("Invalid borrower")]
+    InvalidBorrower,
+
+    #[msg("Loan is not active")]
+    LoanNotActive,
+    
+    #[msg("Loan has expired")]
+    LoanExpired,
+    
+    #[msg("Invalid lender")]
+    InvalidLender,
+
+    #[msg("Loan has not expired yet")]
+    LoanNotExpired,
 }
