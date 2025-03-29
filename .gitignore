@@ -5,3 +5,6 @@ target
 node_modules
 test-ledger
 .yarn
+.collection-address
+.nft-mint
+.env

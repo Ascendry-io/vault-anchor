@@ -17,7 +17,7 @@ import { getAlternativePayerKeypair, getPayerKeypair } from '../utils/utils';
 import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
 import { assert } from 'chai';
-import { getCollectionAddress } from '../utils/collection_store';
+import { getCollectionAddress, saveNftMintAddress } from '../utils/collection_store';
 
 export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
@@ -125,9 +125,6 @@ describe('integration tests for minting an NFT', () => {
 			METADATA_PROGRAM_ID
 		);
 
-		// Get the associated token account for the payer
-		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, payerKeypair.publicKey);
-
 		// Get the associated token account for the owner
 		const ownerTokenAccount = await getAssociatedTokenAddress(
 			mint.publicKey,
@@ -169,6 +166,8 @@ describe('integration tests for minting an NFT', () => {
 		// Verify the owner received the NFT
 		const ownerTokenBalance = await connection.getTokenAccountBalance(ownerTokenAccount);
 		assert.equal(ownerTokenBalance.value.uiAmount, 1);
+		saveNftMintAddress(mint.publicKey.toBase58());
+
 	});
 
 	it('other wallets should not be able to mint an NFT', async () => {
