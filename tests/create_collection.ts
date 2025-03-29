@@ -8,6 +8,7 @@ import {
 import { getAlternativePayerKeypair, getPayerKeypair } from '../utils/utils';
 import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
+import { saveCollectionAddress } from '../utils/collection_store';
 
 export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
@@ -53,7 +54,7 @@ describe('Create Collection', () => {
 		masterEditionAddress = masterEdition;
 
 		const [collectionCounter] = await PublicKey.findProgramAddress(
-			[Buffer.from('collection_counter'), mint.publicKey.toBuffer()],
+			[Buffer.from('vault_collection_counter')],
 			program.programId
 		);
 		collectionCounterPDA = collectionCounter;
@@ -117,5 +118,8 @@ describe('Create Collection', () => {
 		console.log(`Metadata Address: ${metadataPDA.toString()}`);
 		console.log(`Master Edition Address: ${masterEditionAddress.toString()}`);
 		console.log(`Collection Counter Address: ${collectionCounterPDA.toString()}`);
+
+		// Save collection address for other tests
+		saveCollectionAddress(mint.publicKey.toString());
 	});
 });

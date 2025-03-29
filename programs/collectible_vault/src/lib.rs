@@ -8,7 +8,7 @@ use {
     instructions::mint_nft::*,
 };
 
-declare_id!("2iaNEJN6GhTknsfLzdcc8yEZzYCSoiU1fiJNd5wywGNL");
+declare_id!("A45MQouCDPocVAwjraBheaXGpupySU4fhVvu3oB5GxxT");
 
 #[program]
 pub mod collectible_vault {

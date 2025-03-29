@@ -1,18 +1,17 @@
 [toolchain]
-package_manager = "yarn"
 
 [features]
 resolution = true
 skip-lint = false
 
 [programs.devnet]
-collectible_vault = "2iaNEJN6GhTknsfLzdcc8yEZzYCSoiU1fiJNd5wywGNL"
+collectible_vault = "A45MQouCDPocVAwjraBheaXGpupySU4fhVvu3oB5GxxT"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

@@ -54,11 +54,12 @@ pub struct CreateCollection<'info> {
     pub master_edition: UncheckedAccount<'info>,
 
     #[account(
-        init,
-        seeds = [b"collection_counter", mint.key().as_ref()],
+        init_if_needed,
+        seeds = [b"vault_collection_counter"],
         payer = payer,
         bump,
-        space = CollectionCounter::INIT_SPACE
+        space = CollectionCounter::INIT_SPACE,
+        constraint = payer.key() == get_admin_account_pubkey() @ errors::ErrorCode::UnauthorizedTransactionSigner
     )]
     pub collection_counter: Account<'info, CollectionCounter>,
 }

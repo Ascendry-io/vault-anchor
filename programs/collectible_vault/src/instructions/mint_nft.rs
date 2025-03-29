@@ -34,35 +34,22 @@ pub struct MintNFT<'info> {
     #[account(mut)]
     pub master_edition: UncheckedAccount<'info>,
 
-    // User token account
-    #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = mint,
-        associated_token::authority = payer,
-    )]
-    pub token_account: Account<'info, TokenAccount>,
-
     #[account(mut, constraint = payer.key() == get_admin_account_pubkey() @ errors::ErrorCode::UnauthorizedTransactionSigner)]
-    // Payer account
     pub payer: Signer<'info>,
-    // System programs
+
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
 
-    //Metaplex program
     /// CHECK: Metaplex program ID check
     #[account(address = mpl_token_metadata::ID)]
     pub token_metadata_program: UncheckedAccount<'info>,
 
-    // Metaplex collection that already exists
-    #[account(mut)]
     /// CHECK: Metaplex will validate the collection account
+    #[account(mut)]
     pub collection: UncheckedAccount<'info>,
 
-    // Collection accounts
     /// CHECK: Collection mint
     pub collection_mint: Account<'info, Mint>,
 
@@ -75,11 +62,22 @@ pub struct MintNFT<'info> {
 
     #[account(
         mut,
-        seeds = [b"collection_counter", collection_mint.key().as_ref()],
+        seeds = [b"vault_collection_counter"],
         bump,
         constraint = collection_counter.collection_mint == collection_mint.key() @ errors::ErrorCode::CollectionMintDoesNotMatch
     )]
     pub collection_counter: Account<'info, CollectionCounter>,
+
+    /// CHECK: Just used as a parameter for token account
+    pub owner: UncheckedAccount<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = mint,
+        associated_token::authority = owner,
+    )]
+    pub owner_token_account: Account<'info, TokenAccount>,
 }
 
 pub fn handle(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
@@ -128,7 +126,7 @@ pub fn handle(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
     }
     .instruction(args);
 
-    // Creating metadata with CPI
+    // Create metadata with CPI
     anchor_lang::solana_program::program::invoke(
         &metadata_ix,
         &[
@@ -141,13 +139,13 @@ pub fn handle(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
         ],
     )?;
 
-    // Mint token
+    // Mint token to the owner's token account instead of payer's
     anchor_spl::token::mint_to(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             anchor_spl::token::MintTo {
                 mint: ctx.accounts.mint.to_account_info(),
-                to: ctx.accounts.token_account.to_account_info(),
+                to: ctx.accounts.owner_token_account.to_account_info(), // Changed to owner's token account
                 authority: ctx.accounts.payer.to_account_info(),
             },
         ),
