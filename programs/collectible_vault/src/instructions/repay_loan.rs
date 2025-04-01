@@ -63,6 +63,10 @@ pub struct RepayLoan<'info> {
 pub fn handle(ctx: Context<RepayLoan>) -> Result<()> {
     let loan_info = &ctx.accounts.loan_info;
 
+    // Calculate total repayment amount (principal + interest)
+    let total_repayment = loan_info.loan_amount.checked_add(loan_info.interest_amount)
+        .ok_or(errors::ErrorCode::CalculationError)?;
+
     // Transfer loan amount back to lender
     anchor_lang::system_program::transfer(
         CpiContext::new(
@@ -72,7 +76,7 @@ pub fn handle(ctx: Context<RepayLoan>) -> Result<()> {
                 to: ctx.accounts.lender.to_account_info(),
             },
         ),
-        loan_info.loan_amount,
+        total_repayment,
     )?;
 
     // Transfer NFT back to borrower

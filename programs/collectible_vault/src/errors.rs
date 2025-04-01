@@ -37,4 +37,7 @@ pub enum ErrorCode {
 
     #[msg("Loan has not expired yet")]
     LoanNotExpired,
+
+    #[msg("Calculation error")]
+    CalculationError,
 }

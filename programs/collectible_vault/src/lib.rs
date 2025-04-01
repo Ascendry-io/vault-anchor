@@ -9,7 +9,7 @@ use {
     instructions::repay_loan::*, instructions::claim_delinquent_nft::*,
 };
 
-declare_id!("HAWWTcRT7okdEEUWg1qfKwsrVVUctqvYtnh8HbFoAnvL");
+declare_id!("J9pUU7y7TLsoVJAy44XayjPGFsRnxVe34NtrfTbF9hjM");
 
 #[program]
 pub mod collectible_vault {

@@ -17,211 +17,353 @@ import { CollectibleVault } from '../target/types/collectible_vault';
 import { assert } from 'chai';
 import { getCollectionAddress, getNftAddress } from '../utils/collection_store';
 
+// Helper function to format SOL amounts with 4 decimal places
+const formatSOL = (lamports) => {
+    return (lamports / anchor.web3.LAMPORTS_PER_SOL).toFixed(4) + " SOL";
+};
+
+// Helper function to log account balances
+const logBalances = async (connection, accounts, labels) => {
+    console.log("--------- ACCOUNT BALANCES ---------");
+    for (let i = 0; i < accounts.length; i++) {
+        const balance = await connection.getBalance(accounts[i]);
+        console.log(`${labels[i]}: ${formatSOL(balance)}`);
+    }
+    console.log("------------------------------------");
+};
+
 describe('NFT Loan Flow Tests', () => {
-	const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-	const nftOwner = getAlternativePayerKeypair();  // NFT owner who wants a loan
-	const lender = getPayerKeypair();    // Person providing the loan
+    // Set up test banner for better visibility in logs
+    before(() => {
+        console.log("\n========================================");
+        console.log("🧪 STARTING NFT LOAN FLOW TESTS");
+        console.log("========================================\n");
+    });
 
-	const wallet = new anchor.Wallet(nftOwner);
-	const provider = new anchor.AnchorProvider(connection, wallet, {});
-	anchor.setProvider(provider);
+    after(() => {
+        console.log("\n========================================");
+        console.log("✅ NFT LOAN FLOW TESTS COMPLETED");
+        console.log("========================================\n");
+    });
 
-	const program = anchor.workspace.CollectibleVault as anchor.Program<CollectibleVault>;
+    const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+    const nftOwner = getAlternativePayerKeypair();  // NFT owner who wants a loan
+    const lender = getPayerKeypair();    // Person providing the loan
 
-	let nftMint: PublicKey;
-	let ownerNftAccount: PublicKey;
-	let vaultNftAccount: PublicKey;
-	let lenderNftAccount: PublicKey;
-	let vaultAuthority: PublicKey;
-	let loanInfoPDA: PublicKey;
-	let collectionMint: PublicKey;
+    // Log key information about test participants
+    console.log("Test participants:");
+    console.log(`NFT Owner: ${nftOwner.publicKey.toString()}`);
+    console.log(`Lender: ${lender.publicKey.toString()}`);
 
-	before(async () => {
-		// Get existing collection
-		collectionMint = getCollectionAddress();
+    const wallet = new anchor.Wallet(nftOwner);
+    const provider = new anchor.AnchorProvider(connection, wallet, {});
+    anchor.setProvider(provider);
 
-		// Create NFT
-		nftMint = getNftAddress();
+    const program = anchor.workspace.CollectibleVault as anchor.Program<CollectibleVault>;
+    console.log(`Program ID: ${program.programId.toString()}`);
 
-		ownerNftAccount = await getAssociatedTokenAddress(
-			nftMint,
-			nftOwner.publicKey
-		);
+    let nftMint: PublicKey;
+    let ownerNftAccount: PublicKey;
+    let vaultNftAccount: PublicKey;
+    let lenderNftAccount: PublicKey;
+    let vaultAuthority: PublicKey;
+    let loanInfoPDA: PublicKey;
+    let collectionMint: PublicKey;
 
-		// Derive vault authority PDA
-		[vaultAuthority] = await PublicKey.findProgramAddressSync(
-			[Buffer.from('vault')],
-			program.programId
-		);
-
-		// Derive vault NFT account
-		vaultNftAccount = await getAssociatedTokenAddress(
-			nftMint,
-			vaultAuthority,
-			true
-		);
-
-		// Derive lender's NFT account
-		lenderNftAccount = await getAssociatedTokenAddress(
-			nftMint,
-			lender.publicKey
-		);
-
-
-		// Derive loan info PDA
-		[loanInfoPDA] = await PublicKey.findProgramAddressSync(
-			[Buffer.from('loan'), nftMint.toBuffer()],
-			program.programId
-		);
-	});
-
-	it('should stake NFT for loan', async () => {
-		const loanAmount = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
-		const interestRate = new anchor.BN(500); // 5%
-		const duration = new anchor.BN(24 * 60 * 60); // 1 day in seconds
-
-		await program.methods.stakeNftForLoan(
-			loanAmount,
-			interestRate,
-			duration
-		)
-		.accounts({
-			loanInfo: loanInfoPDA,
-			nftMint: nftMint,
-			ownerNftAccount: ownerNftAccount,
-			vaultNftAccount: vaultNftAccount,
-			vaultAuthority,
-			owner: nftOwner.publicKey,
-			systemProgram: SystemProgram.programId,
-			tokenProgram: TOKEN_PROGRAM_ID,
-			associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-			rent: SYSVAR_RENT_PUBKEY,
-		})
-		.signers([nftOwner])
-		.rpc();
-
-		// Verify NFT is in vault
-		const vaultAccount = await provider.connection.getTokenAccountBalance(vaultNftAccount);
-		assert.equal(vaultAccount.value.uiAmount, 1);
-	});
-
-	it('should provide loan liquidity', async () => {
-		const nftOwnerBalanceBefore = await provider.connection.getBalance(nftOwner.publicKey);
-		const lenderBalanceBefore = await provider.connection.getBalance(lender.publicKey);
-        console.log("ownerBalanceBefore", nftOwnerBalanceBefore);
-		console.log("lenderBalanceBefore", lenderBalanceBefore);
-
-		await program.methods.provideLoanLiquidity()
-			.accounts({
-				loanInfo: loanInfoPDA,
-				lender: lender.publicKey,
-				borrower: nftOwner.publicKey,
-				systemProgram: SystemProgram.programId,
-			})
-			.signers([lender])
-			.rpc();
-
-		const ownerBalanceAfter = await provider.connection.getBalance(nftOwner.publicKey);
-		const lenderBalanceAfter = await provider.connection.getBalance(lender.publicKey);
-        console.log("ownerBalanceAfter", ownerBalanceAfter);
-		console.log("lenderBalanceAfter", lenderBalanceAfter);
+    before(async () => {
+        console.log("\n📋 Setting up test accounts and PDAs...");
         
-        // Check that balance increased by at least 1 SOL
+        // Get existing collection
+        collectionMint = getCollectionAddress();
+        console.log(`Collection Mint: ${collectionMint.toString()}`);
+
+        // Create NFT
+        nftMint = getNftAddress();
+        console.log(`NFT Mint: ${nftMint.toString()}`);
+
+        ownerNftAccount = await getAssociatedTokenAddress(
+            nftMint,
+            nftOwner.publicKey
+        );
+        console.log(`Owner's NFT Account: ${ownerNftAccount.toString()}`);
+
+        // Derive vault authority PDA
+        [vaultAuthority] = await PublicKey.findProgramAddressSync(
+            [Buffer.from('vault')],
+            program.programId
+        );
+        console.log(`Vault Authority PDA: ${vaultAuthority.toString()}`);
+
+        // Derive vault NFT account
+        vaultNftAccount = await getAssociatedTokenAddress(
+            nftMint,
+            vaultAuthority,
+            true
+        );
+        console.log(`Vault NFT Account: ${vaultNftAccount.toString()}`);
+
+        // Derive lender's NFT account
+        lenderNftAccount = await getAssociatedTokenAddress(
+            nftMint,
+            lender.publicKey
+        );
+        console.log(`Lender's NFT Account: ${lenderNftAccount.toString()}`);
+
+        // Derive loan info PDA
+        [loanInfoPDA] = await PublicKey.findProgramAddressSync(
+            [Buffer.from('loan'), nftMint.toBuffer()],
+            program.programId
+        );
+        console.log(`Loan Info PDA: ${loanInfoPDA.toString()}`);
+
+        // Log initial balances
+        await logBalances(
+            connection,
+            [nftOwner.publicKey, lender.publicKey],
+            ["NFT Owner", "Lender"]
+        );
+    });
+
+    it('should stake NFT for loan', async () => {
+        console.log("\n🔒 TEST: Staking NFT for loan...");
+        
+        const loanAmount = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
+        const interestAmount = new anchor.BN(0.25 * anchor.web3.LAMPORTS_PER_SOL);
+        const duration = new anchor.BN(24 * 60 * 60); // 1 day in seconds
+
+        console.log(`Loan Amount: ${formatSOL(loanAmount)}`);
+        console.log(`Interest Amount: ${formatSOL(interestAmount)}`);
+        console.log(`Duration: ${duration.toString()} seconds (${duration.toNumber() / 3600} hours)`);
+
+        console.log("Executing stakeNftForLoan transaction...");
+        await program.methods.stakeNftForLoan(
+            loanAmount,
+            interestAmount,
+            duration
+        )
+        .accounts({
+            loanInfo: loanInfoPDA,
+            nftMint: nftMint,
+            ownerNftAccount: ownerNftAccount,
+            vaultNftAccount: vaultNftAccount,
+            vaultAuthority,
+            owner: nftOwner.publicKey,
+            systemProgram: SystemProgram.programId,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([nftOwner])
+        .rpc();
+
+        // Verify NFT is in vault
+        const vaultAccount = await provider.connection.getTokenAccountBalance(vaultNftAccount);
+        console.log(`NFT tokens in vault: ${vaultAccount.value.uiAmount}`);
+        assert.equal(vaultAccount.value.uiAmount, 1, "NFT should be in the vault");
+        
+        console.log("✅ NFT successfully staked for loan");
+    });
+
+    it('should provide loan liquidity', async () => {
+        console.log("\n💰 TEST: Providing loan liquidity...");
+        
+        // Check balances before providing liquidity
+        console.log("Balances before providing liquidity:");
+        const nftOwnerBalanceBefore = await provider.connection.getBalance(nftOwner.publicKey);
+        const lenderBalanceBefore = await provider.connection.getBalance(lender.publicKey);
+        console.log(`NFT Owner: ${formatSOL(nftOwnerBalanceBefore)}`);
+        console.log(`Lender: ${formatSOL(lenderBalanceBefore)}`);
+
+        console.log("Executing provideLoanLiquidity transaction...");
+        await program.methods.provideLoanLiquidity()
+            .accounts({
+                loanInfo: loanInfoPDA,
+                lender: lender.publicKey,
+                borrower: nftOwner.publicKey,
+                systemProgram: SystemProgram.programId,
+            })
+            .signers([lender])
+            .rpc();
+
+        // Check balances after providing liquidity
+        console.log("Balances after providing liquidity:");
+        const ownerBalanceAfter = await provider.connection.getBalance(nftOwner.publicKey);
+        const lenderBalanceAfter = await provider.connection.getBalance(lender.publicKey);
+        console.log(`NFT Owner: ${formatSOL(ownerBalanceAfter)}`);
+        console.log(`Lender: ${formatSOL(lenderBalanceAfter)}`);
+        
+        // Calculate differences
         const ownerBalanceDifference = ownerBalanceAfter - nftOwnerBalanceBefore;
+        const lenderBalanceDifference = lenderBalanceAfter - lenderBalanceBefore;
+        
+        console.log(`NFT Owner balance change: ${formatSOL(ownerBalanceDifference)}`);
+        console.log(`Lender balance change: ${formatSOL(lenderBalanceDifference)}`);
+        
+        // Check that borrower balance increased by at least 0.99 SOL (accounting for fees)
         assert.isTrue(
             ownerBalanceDifference >= 0.99 * anchor.web3.LAMPORTS_PER_SOL,
-            `Balance difference (${ownerBalanceDifference}) should be at least 1 SOL`
+            `Balance difference (${formatSOL(ownerBalanceDifference)}) should be at least 0.99 SOL increase for NFT owner`
         );
 
-		const lenderBalanceDifference = lenderBalanceAfter - lenderBalanceBefore;
-		assert.isTrue(
-			lenderBalanceDifference >= -1 * anchor.web3.LAMPORTS_PER_SOL,
-			`Balance difference (${lenderBalanceDifference}) should be at least 1 SOL`
-		);
-	});
+        // Check that lender balance decreased by approximately 1 SOL (accounting for fees)
+        assert.isTrue(
+            lenderBalanceDifference <= -0.99 * anchor.web3.LAMPORTS_PER_SOL,
+            `Balance difference (${formatSOL(lenderBalanceDifference)}) should be at least 0.99 SOL decrease for lender`
+        );
+        
+        console.log("✅ Loan liquidity successfully provided");
+    });
 
-	it('should repay loan and return NFT', async () => {
-		await program.methods.repayLoan()
-			.accounts({
-				loanInfo: loanInfoPDA,
-				nftMint: nftMint,
-				vaultNftAccount,
-				borrowerNftAccount: ownerNftAccount,
-				vaultAuthority,
-				borrower: nftOwner.publicKey,
-				lender: lender.publicKey,
-				tokenProgram: TOKEN_PROGRAM_ID,
-				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-				systemProgram: SystemProgram.programId,
-				rent: SYSVAR_RENT_PUBKEY,
-			})
-			.signers([nftOwner])
-			.rpc();
+    it('should repay loan and return NFT', async () => {
+        console.log("\n💸 TEST: Repaying loan and returning NFT...");
+        
+        // Check balances before repayment
+        console.log("Balances before loan repayment:");
+        const lenderBalanceBefore = await provider.connection.getBalance(lender.publicKey);
+        const borrowerBalanceBefore = await provider.connection.getBalance(nftOwner.publicKey);
+        console.log(`Lender: ${formatSOL(lenderBalanceBefore)}`);
+        console.log(`NFT Owner (Borrower): ${formatSOL(borrowerBalanceBefore)}`);
+        
+        console.log("Executing repayLoan transaction...");
+        await program.methods.repayLoan()
+          .accounts({
+            loanInfo: loanInfoPDA,
+            nftMint: nftMint,
+            vaultNftAccount,
+            borrowerNftAccount: ownerNftAccount,
+            vaultAuthority,
+            borrower: nftOwner.publicKey,
+            lender: lender.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            rent: SYSVAR_RENT_PUBKEY,
+          })
+          .signers([nftOwner])
+          .rpc();
+      
+        // Check balances after repayment
+        console.log("Balances after loan repayment:");
+        const lenderBalanceAfter = await provider.connection.getBalance(lender.publicKey);
+        const borrowerBalanceAfter = await provider.connection.getBalance(nftOwner.publicKey);
+        console.log(`Lender: ${formatSOL(lenderBalanceAfter)}`);
+        console.log(`NFT Owner (Borrower): ${formatSOL(borrowerBalanceAfter)}`);
+        
+        // Calculate differences
+        const lenderBalanceDifference = lenderBalanceAfter - lenderBalanceBefore;
+        const borrowerBalanceDifference = borrowerBalanceAfter - borrowerBalanceBefore;
+        
+        console.log(`Lender balance change: ${formatSOL(lenderBalanceDifference)}`);
+        console.log(`Borrower balance change: ${formatSOL(borrowerBalanceDifference)}`);
+        
+        // Expected repayment: 1 SOL principal + 0.25 SOL interest = 1.25 SOL
+        const minExpectedRepayment = 1.24 * anchor.web3.LAMPORTS_PER_SOL;
+        const maxExpectedRepayment = 1.26 * anchor.web3.LAMPORTS_PER_SOL;
+        
+        // Assert that lender received 1.25 SOL (accounting for small variations due to rent)
+        assert.isTrue(
+          lenderBalanceDifference >= minExpectedRepayment && 
+          lenderBalanceDifference <= maxExpectedRepayment,
+          `Lender should receive 1.25 SOL back but got ${formatSOL(lenderBalanceDifference)}`
+        );
+        
+        // Verify NFT is back with owner
+        const ownerAccount = await provider.connection.getTokenAccountBalance(ownerNftAccount);
+        console.log(`NFT tokens in owner's account: ${ownerAccount.value.uiAmount}`);
+        assert.equal(ownerAccount.value.uiAmount, 1, "NFT should be returned to owner");
+        
+        console.log("✅ Loan successfully repaid and NFT returned");
+    });
 
-		// Verify NFT is back with owner
-		const ownerAccount = await provider.connection.getTokenAccountBalance(ownerNftAccount);
-		assert.equal(ownerAccount.value.uiAmount, 1);
-	});
+    it('should allow lender to claim NFT after loan expires', async () => {
+        console.log("\n⏱️ TEST: Claiming NFT after loan expiration...");
+        
+        // First stake NFT again
+        const loanAmount = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
+        const interestAmount = new anchor.BN(0.25 * anchor.web3.LAMPORTS_PER_SOL);
+        const duration = new anchor.BN(1); // 1 second duration for testing
+        
+        console.log(`Setting up quick-expiring loan (${duration} second duration)...`);
+        console.log(`Loan Amount: ${formatSOL(loanAmount)}`);
+        console.log(`Interest Amount: ${formatSOL(interestAmount)}`);
 
-	it('should allow lender to claim NFT after loan expires', async () => {
-		// First stake NFT again
-		const loanAmount = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
-		const interestRate = new anchor.BN(500);
-		const duration = new anchor.BN(1); // 1 second duration for testing
+        console.log("Executing stakeNftForLoan transaction...");
+        await program.methods.stakeNftForLoan(
+            loanAmount,
+            interestAmount,
+            duration
+        )
+        .accounts({
+            loanInfo: loanInfoPDA,
+            nftMint: nftMint,
+            ownerNftAccount: ownerNftAccount,
+            vaultNftAccount: vaultNftAccount,
+            vaultAuthority,
+            owner: nftOwner.publicKey,
+            systemProgram: SystemProgram.programId,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([nftOwner])
+        .rpc();
 
-		await program.methods.stakeNftForLoan(
-			loanAmount,
-			interestRate,
-			duration
-		)
-		.accounts({
-			loanInfo: loanInfoPDA,
-			nftMint: nftMint,
-			ownerNftAccount: ownerNftAccount,
-			vaultNftAccount: vaultNftAccount,
-			vaultAuthority,
-			owner: nftOwner.publicKey,
-			systemProgram: SystemProgram.programId,
-			tokenProgram: TOKEN_PROGRAM_ID,
-			associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-			rent: SYSVAR_RENT_PUBKEY,
-		})
-		.signers([nftOwner])
-		.rpc();
+        // Provide liquidity
+        console.log("Executing provideLoanLiquidity transaction...");
+        await program.methods.provideLoanLiquidity()
+            .accounts({
+                loanInfo: loanInfoPDA,
+                lender: lender.publicKey,
+                borrower: nftOwner.publicKey,
+                systemProgram: SystemProgram.programId,
+            })
+            .signers([lender])
+            .rpc();
 
-		// Provide liquidity
-		await program.methods.provideLoanLiquidity()
-			.accounts({
-				loanInfo: loanInfoPDA,
-				lender: lender.publicKey,
-				borrower: nftOwner.publicKey,
-				systemProgram: SystemProgram.programId,
-			})
-			.signers([lender])
-			.rpc();
+        // Wait for loan to expire
+        const waitTimeMs = 2000; // 2 seconds
+        console.log(`Waiting ${waitTimeMs/1000} seconds for loan to expire...`);
+        await new Promise(resolve => setTimeout(resolve, waitTimeMs));
+        console.log("Loan period has expired");
 
-		// Wait for loan to expire
-		await new Promise(resolve => setTimeout(resolve, 2000));
+        // Check NFT ownership before claim
+        try {
+            const vaultAccountBefore = await provider.connection.getTokenAccountBalance(vaultNftAccount);
+            console.log(`NFT tokens in vault before claim: ${vaultAccountBefore.value.uiAmount}`);
+        } catch (err) {
+            console.log("Could not read vault NFT account - it may not exist yet");
+        }
 
-		// Claim NFT
-		await program.methods.claimDelinquentNft()
-			.accounts({
-				loanInfo: loanInfoPDA,
-				nftMint: nftMint,
-				vaultNftAccount,
-				lenderNftAccount,
-				vaultAuthority,
-				lender: lender.publicKey,
-				tokenProgram: TOKEN_PROGRAM_ID,
-				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-				systemProgram: SystemProgram.programId,
-				rent: SYSVAR_RENT_PUBKEY,
-			})
-			.signers([lender])
-			.rpc();
+        // Claim NFT
+        console.log("Executing claimDelinquentNft transaction...");
+        await program.methods.claimDelinquentNft()
+            .accounts({
+                loanInfo: loanInfoPDA,
+                nftMint: nftMint,
+                vaultNftAccount,
+                lenderNftAccount,
+                vaultAuthority,
+                lender: lender.publicKey,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY,
+            })
+            .signers([lender])
+            .rpc();
 
-		// Verify NFT is with lender
-		const lenderAccount = await provider.connection.getTokenAccountBalance(lenderNftAccount);
-		assert.equal(lenderAccount.value.uiAmount, 1);
-	});
-}); 
+        // Verify NFT is with lender
+        const lenderAccount = await provider.connection.getTokenAccountBalance(lenderNftAccount);
+        console.log(`NFT tokens in lender's account: ${lenderAccount.value.uiAmount}`);
+        assert.equal(lenderAccount.value.uiAmount, 1, "Lender should have claimed the NFT");
+        
+        console.log("✅ Delinquent NFT successfully claimed by lender");
+        
+        // Final balances
+        await logBalances(
+            connection,
+            [nftOwner.publicKey, lender.publicKey],
+            ["NFT Owner", "Lender"]
+        );
+    });
+});

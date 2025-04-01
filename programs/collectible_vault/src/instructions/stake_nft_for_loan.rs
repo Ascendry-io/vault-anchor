@@ -58,18 +58,17 @@ pub struct StakeNftForLoan<'info> {
 pub fn handle(
     ctx: Context<StakeNftForLoan>,
     loan_amount: u64,
-    interest_rate: u64,
+    interest_amount: u64,
     duration: i64,
 ) -> Result<()> {
     require!(duration > 0, errors::ErrorCode::InvalidLoanDuration);
-    require!(interest_rate > 0, errors::ErrorCode::InvalidInterestRate);
 
     // Initialize loan info
     let loan_info = &mut ctx.accounts.loan_info;
     loan_info.nft_mint = ctx.accounts.nft_mint.key();
     loan_info.nft_owner = ctx.accounts.owner.key();
     loan_info.loan_amount = loan_amount;
-    loan_info.interest_rate = interest_rate;
+    loan_info.interest_amount = interest_amount;
     loan_info.duration = duration;
     loan_info.start_time = None;
     loan_info.lender = None;

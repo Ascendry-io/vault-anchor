@@ -9,6 +9,7 @@ export function getPayerKeypair(): Keypair {
     throw new Error('PRIVATE_KEY_BASE_58 is not set in the environment variables');
   }
   const secretKeyArray = JSON.parse(secretKey58); // Parse JSON
+  console.log(Keypair.fromSecretKey(Uint8Array.from(secretKeyArray)).publicKey.toBase58());
   return Keypair.fromSecretKey(Uint8Array.from(secretKeyArray));
 }
 

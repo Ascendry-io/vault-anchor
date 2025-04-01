@@ -19,7 +19,7 @@ pub struct LoanInfo {
     pub nft_mint: Pubkey,            // The NFT being used as collateral
     pub nft_owner: Pubkey,           // Original owner of the NFT
     pub loan_amount: u64,            // Requested loan amount in lamports
-    pub interest_rate: u64,          // Interest rate in basis points (1 = 0.01%)
+    pub interest_amount: u64,        // Changed from interest_rate
     pub duration: i64,               // Loan duration in seconds
     pub start_time: Option<i64>,     // When the loan starts (set when funded)
     pub lender: Option<Pubkey>,      // Address of the lender (set when funded)

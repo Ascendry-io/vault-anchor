@@ -11,6 +11,7 @@ use {
             CreateMetadataAccountV3InstructionArgs,
         },
         types::{CollectionDetails, Creator, DataV2},
+        ID as TOKEN_METADATA_PROGRAM_ID,
     },
 };
 
@@ -26,7 +27,16 @@ pub struct CreateCollection<'info> {
     pub mint: Account<'info, Mint>,
 
     /// CHECK: Metaplex will create this account
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+            b"metadata",
+            TOKEN_METADATA_PROGRAM_ID.as_ref(),
+            mint.key().as_ref(),
+        ],
+        bump,
+        seeds::program = TOKEN_METADATA_PROGRAM_ID,
+    )]
     pub metadata: UncheckedAccount<'info>,
 
     #[account(
@@ -50,7 +60,17 @@ pub struct CreateCollection<'info> {
     pub token_metadata_program: UncheckedAccount<'info>,
 
     /// CHECK: Metaplex master edition validation handles this
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+            b"metadata",
+            TOKEN_METADATA_PROGRAM_ID.as_ref(),
+            mint.key().as_ref(),
+            b"edition",
+        ],
+        bump,
+        seeds::program = TOKEN_METADATA_PROGRAM_ID,
+    )]
     pub master_edition: UncheckedAccount<'info>,
 
     #[account(
@@ -77,7 +97,7 @@ pub fn handle(ctx: Context<CreateCollection>) -> Result<()> {
         seller_fee_basis_points: 100,
         creators: Some(vec![Creator {
             address: ctx.accounts.payer.key(),
-            verified: false,
+            verified: true,
             share: 100,
         }]),
         collection: None,
@@ -86,7 +106,7 @@ pub fn handle(ctx: Context<CreateCollection>) -> Result<()> {
 
     let args = CreateMetadataAccountV3InstructionArgs {
         data,
-        is_mutable: false,
+        is_mutable: true,
         collection_details: Some(CollectionDetails::V1 { size: 0 }), // This marks it as a collection
     };
 
