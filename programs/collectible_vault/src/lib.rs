@@ -4,12 +4,12 @@ pub mod instructions;
 pub mod state;
 
 use {
-    anchor_lang::prelude::*, instructions::burn_nft::*, instructions::create_collection::*,
-    instructions::mint_nft::*, instructions::stake_nft_for_loan::*, instructions::provide_loan_liquidity::*,
-    instructions::repay_loan::*, instructions::claim_delinquent_nft::*,
+    anchor_lang::prelude::*, instructions::burn_nft::*, instructions::cancel_loan_request::*,
+    instructions::create_collection::*, instructions::mint_nft::*, instructions::stake_nft_for_loan::*,
+    instructions::provide_loan_liquidity::*, instructions::repay_loan::*, instructions::claim_delinquent_nft::*,
 };
 
-declare_id!("J9pUU7y7TLsoVJAy44XayjPGFsRnxVe34NtrfTbF9hjM");
+declare_id!("Bk73CJxtKr2Z9X9sKUwEvoafHXSnX7xPpLUhT9ujLXwU");
 
 #[program]
 pub mod collectible_vault {
@@ -41,5 +41,9 @@ pub mod collectible_vault {
 
     pub fn claim_delinquent_nft(ctx: Context<ClaimDelinquentNft>) -> Result<()> {
         instructions::claim_delinquent_nft::handle(ctx)
+    }
+
+    pub fn cancel_loan_request(ctx: Context<CancelLoanRequest>) -> Result<()> {
+        instructions::cancel_loan_request::handle(ctx)
     }
 }

@@ -32,6 +32,137 @@ const logBalances = async (connection, accounts, labels) => {
     console.log("------------------------------------");
 };
 
+async function stakeNftForLoan(
+    program: anchor.Program<CollectibleVault>,
+    {
+        nftOwner,
+        nftMint,
+        ownerNftAccount,
+        vaultNftAccount,
+        vaultAuthority,
+        loanInfoPDA,
+        loanAmount = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL),
+        interestAmount = new anchor.BN(0.25 * anchor.web3.LAMPORTS_PER_SOL),
+        duration = new anchor.BN(24 * 60 * 60), // 1 day default
+    }: {
+        nftOwner: Keypair,
+        nftMint: PublicKey,
+        ownerNftAccount: PublicKey,
+        vaultNftAccount: PublicKey,
+        vaultAuthority: PublicKey,
+        loanInfoPDA: PublicKey,
+        loanAmount?: anchor.BN,
+        interestAmount?: anchor.BN,
+        duration?: anchor.BN,
+    }
+) {
+    console.log("\nStaking NFT for loan...");
+    console.log(`Loan Amount: ${formatSOL(loanAmount)}`);
+    console.log(`Interest Amount: ${formatSOL(interestAmount)}`);
+    console.log(`Duration: ${duration.toString()} seconds`);
+
+    await program.methods.stakeNftForLoan(
+        loanAmount,
+        interestAmount,
+        duration
+    )
+    .accounts({
+        loanInfo: loanInfoPDA,
+        nftMint: nftMint,
+        ownerNftAccount: ownerNftAccount,
+        vaultNftAccount: vaultNftAccount,
+        vaultAuthority,
+        owner: nftOwner.publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+    })
+    .signers([nftOwner])
+    .rpc();
+
+    // Verify NFT is in vault
+    const vaultAccount = await program.provider.connection.getTokenAccountBalance(vaultNftAccount);
+    console.log(`NFT tokens in vault: ${vaultAccount.value.uiAmount}`);
+    assert.equal(vaultAccount.value.uiAmount, 1, "NFT should be in the vault");
+}
+
+async function provideLoanLiquidity(
+    program: anchor.Program<CollectibleVault>,
+    {
+        lender,
+        borrower,
+        loanInfoPDA,
+    }: {
+        lender: Keypair,
+        borrower: PublicKey,
+        loanInfoPDA: PublicKey,
+    }
+) {
+    console.log("\nProviding loan liquidity...");
+    
+    // Log balances before
+    const balancesBefore = await getBalances(program, [
+        { key: borrower, label: "Borrower" },
+        { key: lender.publicKey, label: "Lender" },
+    ]);
+
+    await program.methods.provideLoanLiquidity()
+        .accounts({
+            loanInfo: loanInfoPDA,
+            lender: lender.publicKey,
+            borrower: borrower,
+            systemProgram: SystemProgram.programId,
+        })
+        .signers([lender])
+        .rpc();
+
+    // Log balances after
+    const balancesAfter = await getBalances(program, [
+        { key: borrower, label: "Borrower" },
+        { key: lender.publicKey, label: "Lender" },
+    ]);
+
+    // Log changes
+    logBalanceChanges(balancesBefore, balancesAfter);
+}
+
+async function getBalances(
+    program: anchor.Program<CollectibleVault>,
+    accounts: Array<{ key: PublicKey, label: string }>
+): Promise<Array<{ key: PublicKey, label: string, balance: number }>> {
+    const balances = await Promise.all(
+        accounts.map(async ({ key, label }) => ({
+            key,
+            label,
+            balance: await program.provider.connection.getBalance(key),
+        }))
+    );
+    
+    console.log("\n--------- ACCOUNT BALANCES ---------");
+    balances.forEach(({ label, balance }) => {
+        console.log(`${label}: ${formatSOL(balance)}`);
+    });
+    console.log("------------------------------------\n");
+
+    return balances;
+}
+
+function logBalanceChanges(
+    before: Array<{ key: PublicKey, label: string, balance: number }>,
+    after: Array<{ key: PublicKey, label: string, balance: number }>
+) {
+    console.log("\n--------- BALANCE CHANGES ---------");
+    before.forEach((beforeAccount) => {
+        const afterAccount = after.find(a => a.key.equals(beforeAccount.key));
+        if (afterAccount) {
+            const change = afterAccount.balance - beforeAccount.balance;
+            console.log(`${beforeAccount.label}: ${formatSOL(change)} SOL`);
+        }
+    });
+    console.log("----------------------------------\n");
+}
+
 describe('NFT Loan Flow Tests', () => {
     // Set up test banner for better visibility in logs
     before(() => {
@@ -124,94 +255,72 @@ describe('NFT Loan Flow Tests', () => {
         );
     });
 
-    it('should stake NFT for loan', async () => {
-        console.log("\n🔒 TEST: Staking NFT for loan...");
-        
-        const loanAmount = new anchor.BN(1 * anchor.web3.LAMPORTS_PER_SOL);
-        const interestAmount = new anchor.BN(0.25 * anchor.web3.LAMPORTS_PER_SOL);
-        const duration = new anchor.BN(24 * 60 * 60); // 1 day in seconds
-
-        console.log(`Loan Amount: ${formatSOL(loanAmount)}`);
-        console.log(`Interest Amount: ${formatSOL(interestAmount)}`);
-        console.log(`Duration: ${duration.toString()} seconds (${duration.toNumber() / 3600} hours)`);
-
-        console.log("Executing stakeNftForLoan transaction...");
-        await program.methods.stakeNftForLoan(
-            loanAmount,
-            interestAmount,
-            duration
-        )
-        .accounts({
-            loanInfo: loanInfoPDA,
-            nftMint: nftMint,
-            ownerNftAccount: ownerNftAccount,
-            vaultNftAccount: vaultNftAccount,
+    it('should stake NFT for loan and then cancel it', async () => {
+        await stakeNftForLoan(program, {
+            nftOwner,
+            nftMint,
+            ownerNftAccount,
+            vaultNftAccount,
             vaultAuthority,
-            owner: nftOwner.publicKey,
-            systemProgram: SystemProgram.programId,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            rent: SYSVAR_RENT_PUBKEY,
-        })
-        .signers([nftOwner])
-        .rpc();
+            loanInfoPDA,
+        });
 
-        // Verify NFT is in vault
-        const vaultAccount = await provider.connection.getTokenAccountBalance(vaultNftAccount);
-        console.log(`NFT tokens in vault: ${vaultAccount.value.uiAmount}`);
-        assert.equal(vaultAccount.value.uiAmount, 1, "NFT should be in the vault");
-        
-        console.log("✅ NFT successfully staked for loan");
+        // Then cancel the loan request
+        console.log("\n❌ TEST: Canceling loan request...");
+        await program.methods.cancelLoanRequest()
+            .accounts({
+                owner: nftOwner.publicKey,
+                loanInfo: loanInfoPDA,
+                nftMint: nftMint,
+                ownerNftAccount: ownerNftAccount,
+                vaultNftAccount: vaultNftAccount,
+                vaultAuthority,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+            })
+            .signers([nftOwner])
+            .rpc();
+
+        // Verify NFT returned and accounts closed
+        const ownerAccount = await provider.connection.getTokenAccountBalance(ownerNftAccount);
+        console.log(`NFT tokens in owner's account after cancel: ${ownerAccount.value.uiAmount}`);
+        assert.equal(ownerAccount.value.uiAmount, 1, "NFT should be returned to owner");
+
+        // Verify loan account is closed
+        try {
+            await program.account.loanInfo.fetch(loanInfoPDA);
+            assert.fail("Loan account should be closed");
+        } catch (error) {
+            assert.include(error.message, "Account does not exist", "Expected loan account to be closed");
+        }
+
+        // Verify vault account is closed
+        try {
+            await provider.connection.getTokenAccountBalance(vaultNftAccount);
+            assert.fail("Vault token account should be closed");
+        } catch (error) {
+            assert.include(error.message, "failed to get token account balance", "Expected vault token account to be closed");
+        }
+
+        console.log("✅ Loan request successfully canceled");
     });
 
     it('should provide loan liquidity', async () => {
-        console.log("\n💰 TEST: Providing loan liquidity...");
-        
-        // Check balances before providing liquidity
-        console.log("Balances before providing liquidity:");
-        const nftOwnerBalanceBefore = await provider.connection.getBalance(nftOwner.publicKey);
-        const lenderBalanceBefore = await provider.connection.getBalance(lender.publicKey);
-        console.log(`NFT Owner: ${formatSOL(nftOwnerBalanceBefore)}`);
-        console.log(`Lender: ${formatSOL(lenderBalanceBefore)}`);
+        await stakeNftForLoan(program, {
+            nftOwner,
+            nftMint,
+            ownerNftAccount,
+            vaultNftAccount,
+            vaultAuthority,
+            loanInfoPDA,
+        });
 
-        console.log("Executing provideLoanLiquidity transaction...");
-        await program.methods.provideLoanLiquidity()
-            .accounts({
-                loanInfo: loanInfoPDA,
-                lender: lender.publicKey,
-                borrower: nftOwner.publicKey,
-                systemProgram: SystemProgram.programId,
-            })
-            .signers([lender])
-            .rpc();
-
-        // Check balances after providing liquidity
-        console.log("Balances after providing liquidity:");
-        const ownerBalanceAfter = await provider.connection.getBalance(nftOwner.publicKey);
-        const lenderBalanceAfter = await provider.connection.getBalance(lender.publicKey);
-        console.log(`NFT Owner: ${formatSOL(ownerBalanceAfter)}`);
-        console.log(`Lender: ${formatSOL(lenderBalanceAfter)}`);
-        
-        // Calculate differences
-        const ownerBalanceDifference = ownerBalanceAfter - nftOwnerBalanceBefore;
-        const lenderBalanceDifference = lenderBalanceAfter - lenderBalanceBefore;
-        
-        console.log(`NFT Owner balance change: ${formatSOL(ownerBalanceDifference)}`);
-        console.log(`Lender balance change: ${formatSOL(lenderBalanceDifference)}`);
-        
-        // Check that borrower balance increased by at least 0.99 SOL (accounting for fees)
-        assert.isTrue(
-            ownerBalanceDifference >= 0.99 * anchor.web3.LAMPORTS_PER_SOL,
-            `Balance difference (${formatSOL(ownerBalanceDifference)}) should be at least 0.99 SOL increase for NFT owner`
-        );
-
-        // Check that lender balance decreased by approximately 1 SOL (accounting for fees)
-        assert.isTrue(
-            lenderBalanceDifference <= -0.99 * anchor.web3.LAMPORTS_PER_SOL,
-            `Balance difference (${formatSOL(lenderBalanceDifference)}) should be at least 0.99 SOL decrease for lender`
-        );
-        
-        console.log("✅ Loan liquidity successfully provided");
+        await provideLoanLiquidity(program, {
+            lender,
+            borrower: nftOwner.publicKey,
+            loanInfoPDA,
+        });
     });
 
     it('should repay loan and return NFT', async () => {

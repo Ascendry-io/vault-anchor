@@ -40,4 +40,10 @@ pub enum ErrorCode {
 
     #[msg("Calculation error")]
     CalculationError,
+
+    #[msg("Cannot cancel loan that has already been funded")]
+    LoanAlreadyFunded,
+    
+    #[msg("Only the loan owner can cancel the loan request")]
+    UnauthorizedLoanCancellation,
 }
