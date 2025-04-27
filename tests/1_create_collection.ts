@@ -5,12 +5,10 @@ import {
 	getAssociatedTokenAddress,
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { getAlternativePayerKeypair, getPayerKeypair } from '../utils/utils';
-import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
-import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
+import { PAYER_KEYPAIR, ALTERNATIVE_PAYER_KEYPAIR } from '../utils/testing-keypairs';
+import idl from '../target/idl/collectible_vault.json';
+import { CollectibleVault } from '../target/types/collectible_vault';
 import { saveCollectionAddress, getCollectionAddress } from '../utils/collection_store';
-import fs from 'fs';
-import path from 'path';
 
 export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
@@ -18,10 +16,8 @@ export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 
 describe('Create Collection', () => {
 	const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-	const payerWallet = getPayerKeypair();
-	const altPayerKeypair = getAlternativePayerKeypair();
 
-	const wallet = new anchor.Wallet(payerWallet);
+	const wallet = new anchor.Wallet(PAYER_KEYPAIR);
 	const provider = new anchor.AnchorProvider(connection, wallet, {
 		preflightCommitment: 'confirmed',
 	});
@@ -106,7 +102,7 @@ describe('Create Collection', () => {
 			return;
 		}
 
-		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, altPayerKeypair.publicKey);
+		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, ALTERNATIVE_PAYER_KEYPAIR.publicKey);
 
 		try {
 			await program.methods.createCollection()
@@ -114,7 +110,7 @@ describe('Create Collection', () => {
 					mint: mint.publicKey,
 					metadata: metadataPDA,
 					tokenAccount: tokenAccount,
-					payer: altPayerKeypair.publicKey, // This is an unauthorized payer
+					payer: ALTERNATIVE_PAYER_KEYPAIR.publicKey, // This is an unauthorized payer
 					systemProgram: SystemProgram.programId,
 					tokenProgram: TOKEN_PROGRAM_ID,
 					associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -123,7 +119,7 @@ describe('Create Collection', () => {
 					masterEdition: masterEditionAddress,
 					collectionCounter: collectionCounterPDA,
 				})
-				.signers([mint, altPayerKeypair])
+				.signers([mint, ALTERNATIVE_PAYER_KEYPAIR])
 				.rpc();
 
 			// If it does not throw, fail the test
@@ -153,7 +149,7 @@ describe('Create Collection', () => {
 		console.log("========================================\n");
 
 		// Generate the associated token account for the mint
-		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, payerWallet.publicKey);
+		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, PAYER_KEYPAIR.publicKey);
 		
 		console.log("Submitting createCollection transaction...");
 		const tx = await program.methods.createCollection()
@@ -161,7 +157,7 @@ describe('Create Collection', () => {
 				mint: mint.publicKey,
 				metadata: metadataPDA,
 				tokenAccount: tokenAccount,
-				payer: payerWallet.publicKey,
+				payer: PAYER_KEYPAIR.publicKey,
 				systemProgram: SystemProgram.programId,
 				tokenProgram: TOKEN_PROGRAM_ID,
 				associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -170,7 +166,7 @@ describe('Create Collection', () => {
 				masterEdition: masterEditionAddress,
 				collectionCounter: collectionCounterPDA,
 			})
-			.signers([mint, payerWallet])
+			.signers([mint, PAYER_KEYPAIR])
 			.rpc();
 
 		console.log(`✅ Collection created successfully!`);

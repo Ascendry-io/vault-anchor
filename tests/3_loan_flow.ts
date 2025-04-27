@@ -12,25 +12,11 @@ import {
     getAssociatedTokenAddress,
     ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { getPayerKeypair, getAlternativePayerKeypair } from '../utils/utils';
+import { PAYER_KEYPAIR, ALTERNATIVE_PAYER_KEYPAIR } from '../utils/testing-keypairs';
 import { CollectibleVault } from '../target/types/collectible_vault';
 import { assert } from 'chai';
 import { getCollectionAddress, getNftAddress } from '../utils/collection_store';
-
-// Helper function to format SOL amounts with 4 decimal places
-const formatSOL = (lamports) => {
-    return (lamports / anchor.web3.LAMPORTS_PER_SOL).toFixed(4) + " SOL";
-};
-
-// Helper function to log account balances
-const logBalances = async (connection, accounts, labels) => {
-    console.log("--------- ACCOUNT BALANCES ---------");
-    for (let i = 0; i < accounts.length; i++) {
-        const balance = await connection.getBalance(accounts[i]);
-        console.log(`${labels[i]}: ${formatSOL(balance)}`);
-    }
-    console.log("------------------------------------");
-};
+import { formatSOL, logBalances, getBalances, logBalanceChanges } from './test-utils';
 
 async function stakeNftForLoan(
     program: anchor.Program<CollectibleVault>,
@@ -127,42 +113,6 @@ async function provideLoanLiquidity(
     logBalanceChanges(balancesBefore, balancesAfter);
 }
 
-async function getBalances(
-    program: anchor.Program<CollectibleVault>,
-    accounts: Array<{ key: PublicKey, label: string }>
-): Promise<Array<{ key: PublicKey, label: string, balance: number }>> {
-    const balances = await Promise.all(
-        accounts.map(async ({ key, label }) => ({
-            key,
-            label,
-            balance: await program.provider.connection.getBalance(key),
-        }))
-    );
-    
-    console.log("\n--------- ACCOUNT BALANCES ---------");
-    balances.forEach(({ label, balance }) => {
-        console.log(`${label}: ${formatSOL(balance)}`);
-    });
-    console.log("------------------------------------\n");
-
-    return balances;
-}
-
-function logBalanceChanges(
-    before: Array<{ key: PublicKey, label: string, balance: number }>,
-    after: Array<{ key: PublicKey, label: string, balance: number }>
-) {
-    console.log("\n--------- BALANCE CHANGES ---------");
-    before.forEach((beforeAccount) => {
-        const afterAccount = after.find(a => a.key.equals(beforeAccount.key));
-        if (afterAccount) {
-            const change = afterAccount.balance - beforeAccount.balance;
-            console.log(`${beforeAccount.label}: ${formatSOL(change)} SOL`);
-        }
-    });
-    console.log("----------------------------------\n");
-}
-
 describe('NFT Loan Flow Tests', () => {
     // Set up test banner for better visibility in logs
     before(() => {
@@ -178,8 +128,8 @@ describe('NFT Loan Flow Tests', () => {
     });
 
     const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-    const nftOwner = getAlternativePayerKeypair();  // NFT owner who wants a loan
-    const lender = getPayerKeypair();    // Person providing the loan
+    const nftOwner = ALTERNATIVE_PAYER_KEYPAIR;  // NFT owner who wants a loan
+    const lender = PAYER_KEYPAIR;    // Person providing the loan
 
     // Log key information about test participants
     console.log("Test participants:");
@@ -255,6 +205,14 @@ describe('NFT Loan Flow Tests', () => {
         );
     });
 
+    /**
+     * Test: Stake NFT for loan and then cancel it
+     * Flow:
+     * 1. NFT owner stakes their NFT for a loan
+     * 2. NFT owner cancels the loan request
+     * 3. Verify NFT is returned to owner
+     * 4. Verify loan and vault accounts are closed
+     */
     it('should stake NFT for loan and then cancel it', async () => {
         await stakeNftForLoan(program, {
             nftOwner,
@@ -306,6 +264,13 @@ describe('NFT Loan Flow Tests', () => {
         console.log("✅ Loan request successfully canceled");
     });
 
+    /**
+     * Test: Provide loan liquidity
+     * Flow:
+     * 1. NFT owner stakes their NFT for a loan
+     * 2. Lender provides the loan amount
+     * 3. Verify balances are updated correctly
+     */
     it('should provide loan liquidity', async () => {
         await stakeNftForLoan(program, {
             nftOwner,
@@ -323,6 +288,15 @@ describe('NFT Loan Flow Tests', () => {
         });
     });
 
+    /**
+     * Test: Repay loan and return NFT
+     * Flow:
+     * 1. Check initial balances
+     * 2. Lender attempt to claim NFT before repayment (should fail)
+     * 3. NFT owner repays the loan (principal + interest)
+     * 4. Verify lender receives correct amount
+     * 5. Verify NFT is returned to owner
+     */
     it('should repay loan and return NFT', async () => {
         console.log("\n💸 TEST: Repaying loan and returning NFT...");
         
@@ -332,6 +306,31 @@ describe('NFT Loan Flow Tests', () => {
         const borrowerBalanceBefore = await provider.connection.getBalance(nftOwner.publicKey);
         console.log(`Lender: ${formatSOL(lenderBalanceBefore)}`);
         console.log(`NFT Owner (Borrower): ${formatSOL(borrowerBalanceBefore)}`);
+        
+        // Try to claim NFT before repayment (should fail)
+        console.log("\nAttempting to claim NFT before repayment (should fail)...");
+        try {
+            await program.methods.claimDelinquentNft()
+                .accounts({
+                    loanInfo: loanInfoPDA,
+                    nftMint: nftMint,
+                    vaultNftAccount,
+                    lenderNftAccount,
+                    vaultAuthority,
+                    lender: lender.publicKey,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    systemProgram: SystemProgram.programId,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([lender])
+                .rpc();
+            
+            assert.fail("Should have thrown an error when trying to claim NFT before expiration");
+        } catch (error) {
+            assert.include(error.message, "LoanNotExpired", "Should throw LoanNotExpired error");
+            console.log("✅ Successfully prevented early NFT claim");
+        }
         
         console.log("Executing repayLoan transaction...");
         await program.methods.repayLoan()
@@ -384,6 +383,15 @@ describe('NFT Loan Flow Tests', () => {
         console.log("✅ Loan successfully repaid and NFT returned");
     });
 
+    /**
+     * Test: Claim delinquent NFT after loan expires
+     * Flow:
+     * 1. NFT owner stakes NFT for a very short loan (1 second)
+     * 2. Lender provides loan amount
+     * 3. Wait for loan to expire
+     * 4. Lender claims the delinquent NFT
+     * 5. Verify NFT is transferred to lender
+     */
     it('should allow lender to claim NFT after loan expires', async () => {
         console.log("\n⏱️ TEST: Claiming NFT after loan expiration...");
         

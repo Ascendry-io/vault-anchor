@@ -13,7 +13,7 @@ import {
 	getAssociatedTokenAddress,
 	ASSOCIATED_TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { getAlternativePayerKeypair, getPayerKeypair } from '../utils/utils';
+import { PAYER_KEYPAIR, ALTERNATIVE_PAYER_KEYPAIR } from '../utils/testing-keypairs';
 import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
 import { assert } from 'chai';
@@ -53,10 +53,10 @@ describe('NFT Minting Integration Tests', () => {
 	});
 
 	const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-	const payerKeypair = getPayerKeypair();
-	const altPayerKeypair = getAlternativePayerKeypair();
+	const ADMIN_KEYPAIR = PAYER_KEYPAIR;
+	const OTHER_KEYPAIR = ALTERNATIVE_PAYER_KEYPAIR;
 
-	const wallet = new anchor.Wallet(payerKeypair);
+	const wallet = new anchor.Wallet(ADMIN_KEYPAIR);
 	const provider = new anchor.AnchorProvider(connection, wallet, {
 		preflightCommitment: 'confirmed',
 	});
@@ -77,8 +77,8 @@ describe('NFT Minting Integration Tests', () => {
 		console.log(`Collection Mint: ${collectionMint.toString()}`);
 		
 		// Log key information about test participants
-		await logAccountInfo(connection, payerKeypair.publicKey, "Admin (Payer)");
-		await logAccountInfo(connection, altPayerKeypair.publicKey, "Alternative Payer");
+		await logAccountInfo(connection, ADMIN_KEYPAIR.publicKey, "Admin (Payer)");
+		await logAccountInfo(connection, OTHER_KEYPAIR.publicKey, "Alternative Payer");
 		
 		console.log(`\nProgram ID: ${program.programId.toString()}`);
 
@@ -190,7 +190,7 @@ describe('NFT Minting Integration Tests', () => {
 		// Get the associated token account for the owner
 		const ownerTokenAccount = await getAssociatedTokenAddress(
 			mint.publicKey,
-			altPayerKeypair.publicKey  // Using altPayer as the owner in this example
+			OTHER_KEYPAIR.publicKey  // Using altPayer as the owner in this example
 		);
 		console.log(`Owner Token Account: ${ownerTokenAccount.toString()}`);
 
@@ -202,9 +202,9 @@ describe('NFT Minting Integration Tests', () => {
 			mint: mint.publicKey,
 			metadata: metadataPDA,
 			masterEdition: masterEditionPDA,
-			owner: altPayerKeypair.publicKey,
+			owner: OTHER_KEYPAIR.publicKey,
 			ownerTokenAccount: ownerTokenAccount,
-			payer: payerKeypair.publicKey,
+			payer: ADMIN_KEYPAIR.publicKey,
 			systemProgram: SystemProgram.programId,
 			tokenProgram: TOKEN_PROGRAM_ID,
 			associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -223,7 +223,7 @@ describe('NFT Minting Integration Tests', () => {
 			.mintNft(metadataUri)
 			.accounts(accounts)
 			.preInstructions([modifyComputeUnits])
-			.signers([payerKeypair, mint])
+			.signers([ADMIN_KEYPAIR, mint])
 			.rpc();
 		console.timeEnd("Minting Time");
 
@@ -232,7 +232,7 @@ describe('NFT Minting Integration Tests', () => {
 		console.log(`Transaction Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
 		console.log(`NFT Mint Address: ${mint.publicKey.toString()}`);
 		console.log(`NFT Explorer: https://explorer.solana.com/address/${mint.publicKey.toString()}?cluster=devnet`);
-		console.log(`Owner Address: ${altPayerKeypair.publicKey.toString()}`);
+		console.log(`Owner Address: ${OTHER_KEYPAIR.publicKey.toString()}`);
 
 		// Verify the owner received the NFT
 		try {
@@ -322,7 +322,7 @@ describe('NFT Minting Integration Tests', () => {
 		);
 
 		// Get the associated token account for the payer
-		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, altPayerKeypair.publicKey);
+		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, OTHER_KEYPAIR.publicKey);
 		console.log(`Unauthorized Owner Token Account: ${tokenAccount.toString()}`);
 
 		const metadataUri = 'https://metadata.y00ts.com/y/6869.json';
@@ -333,9 +333,9 @@ describe('NFT Minting Integration Tests', () => {
 			mint: mint.publicKey,
 			metadata: metadataPDA,
 			masterEdition: masterEditionPDA,
-			owner: altPayerKeypair.publicKey,
+			owner: OTHER_KEYPAIR.publicKey,
 			ownerTokenAccount: tokenAccount,
-			payer: altPayerKeypair.publicKey, // Using unauthorized payer
+			payer: OTHER_KEYPAIR.publicKey, // Using unauthorized payer
 			systemProgram: SystemProgram.programId,
 			tokenProgram: TOKEN_PROGRAM_ID,
 			associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -355,7 +355,7 @@ describe('NFT Minting Integration Tests', () => {
 				.mintNft(metadataUri)
 				.accounts(accounts)
 				.preInstructions([modifyComputeUnits])
-				.signers([altPayerKeypair, mint])
+				.signers([OTHER_KEYPAIR, mint])
 				.rpc();
 			console.timeEnd("Unauthorized Attempt Time");
 

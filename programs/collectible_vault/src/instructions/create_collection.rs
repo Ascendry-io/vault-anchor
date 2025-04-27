@@ -91,10 +91,10 @@ pub fn handle(ctx: Context<CreateCollection>) -> Result<()> {
 
     // Create metadata for the collection
     let data = DataV2 {
-        name: "Bank Things".to_string(),
-        symbol: "BANK".to_string(),
-        uri: "https://bank-things.com".to_string(),
-        seller_fee_basis_points: 100,
+        name: "Ascendry Vault".to_string(),
+        symbol: "ASC".to_string(),
+        uri: "https://ascendry.io".to_string(),
+        seller_fee_basis_points: 500,
         creators: Some(vec![Creator {
             address: ctx.accounts.payer.key(),
             verified: true,

@@ -10,7 +10,7 @@ use {
             CreateMasterEditionV3, CreateMasterEditionV3InstructionArgs, CreateMetadataAccountV3,
             CreateMetadataAccountV3InstructionArgs, VerifySizedCollectionItem,
         },
-        types::{Collection, Creator, DataV2, UseMethod, Uses},
+        types::{Collection, Creator, DataV2},
     },
 };
 
@@ -84,11 +84,11 @@ pub fn handle(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
     let collection_counter = &mut ctx.accounts.collection_counter;
     collection_counter.count += 1;
 
-    let name: String = format!("Banked Item #{}", collection_counter.count);
+    let name: String = format!("Item #{}", collection_counter.count);
 
     let data = DataV2 {
         name: name,
-        symbol: "BT".to_string(),
+        symbol: "ASC".to_string(),
         uri: product_detail_uri,
         seller_fee_basis_points: 500,
         creators: Some(vec![Creator {
@@ -100,11 +100,7 @@ pub fn handle(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
             verified: false,
             key: ctx.accounts.collection_mint.key(),
         }),
-        uses: Some(Uses {
-            use_method: UseMethod::Burn,
-            remaining: 1,
-            total: 1,
-        }),
+        uses: None,
     };
 
     // Create Instruction Arguments
