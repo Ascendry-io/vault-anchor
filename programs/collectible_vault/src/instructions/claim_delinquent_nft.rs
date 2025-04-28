@@ -7,8 +7,10 @@ use {
     },
 };
 
+/// Allows lenders to claim the NFT collateral when a loan is not repaid on time
 #[derive(Accounts)]
 pub struct ClaimDelinquentNft<'info> {
+    // Loan account that will be closed after claiming the NFT
     #[account(
         mut,
         seeds = [b"loan", nft_mint.key().as_ref()],
@@ -20,8 +22,10 @@ pub struct ClaimDelinquentNft<'info> {
     )]
     pub loan_info: Account<'info, LoanInfo>,
 
+    // The NFT that was used as collateral
     pub nft_mint: Account<'info, Mint>,
 
+    // Program's vault token account holding the NFT
     #[account(
         mut,
         associated_token::mint = nft_mint,
@@ -29,6 +33,7 @@ pub struct ClaimDelinquentNft<'info> {
     )]
     pub vault_nft_account: Account<'info, TokenAccount>,
 
+    // Lender's token account where the NFT will be transferred
     #[account(
         init_if_needed,
         payer = lender,
@@ -44,6 +49,7 @@ pub struct ClaimDelinquentNft<'info> {
     )]
     pub vault_authority: UncheckedAccount<'info>,
 
+    // Lender's account that will receive the NFT
     #[account(mut)]
     pub lender: Signer<'info>,
 
@@ -54,7 +60,7 @@ pub struct ClaimDelinquentNft<'info> {
 }
 
 pub fn handle(ctx: Context<ClaimDelinquentNft>) -> Result<()> {
-    // Transfer NFT to lender
+    // Transfer NFT from vault to lender
     let vault_bump = ctx.bumps.vault_authority;
     let nft_seeds = &[
         b"vault".as_ref(),

@@ -3,8 +3,10 @@ use {
     anchor_lang::prelude::*,
 };
 
+/// Allows lenders to fund a loan request and make it active
 #[derive(Accounts)]
 pub struct ProvideLoanLiquidity<'info> {
+    // Loan request account that will be updated with lender information
     #[account(
         mut,
         seeds = [b"loan", loan_info.nft_mint.as_ref()],
@@ -14,9 +16,11 @@ pub struct ProvideLoanLiquidity<'info> {
     )]
     pub loan_info: Account<'info, LoanInfo>,
 
+    // Lender's account that will provide the loan funds
     #[account(mut)]
     pub lender: Signer<'info>,
 
+    // Borrower's account that will receive the loan funds
     #[account(
         mut,
         constraint = borrower.key() == loan_info.nft_owner @ errors::ErrorCode::InvalidBorrower
@@ -42,7 +46,7 @@ pub fn handle(ctx: Context<ProvideLoanLiquidity>) -> Result<()> {
         loan_info.loan_amount,
     )?;
 
-    // Update loan info
+    // Update loan status to active and record lender and start time
     loan_info.start_time = Some(Clock::get()?.unix_timestamp);
     loan_info.lender = Some(ctx.accounts.lender.key());
     loan_info.is_active = true;

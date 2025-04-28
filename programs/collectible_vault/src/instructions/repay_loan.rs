@@ -7,8 +7,10 @@ use {
     },
 };
 
+/// Allows borrowers to repay their loan and retrieve their NFT
 #[derive(Accounts)]
 pub struct RepayLoan<'info> {
+    // Loan account that will be closed after repayment
     #[account(
         mut,
         seeds = [b"loan", nft_mint.key().as_ref()],
@@ -20,8 +22,10 @@ pub struct RepayLoan<'info> {
     )]
     pub loan_info: Account<'info, LoanInfo>,
 
+    // The NFT that was used as collateral
     pub nft_mint: Account<'info, Mint>,
 
+    // Program's vault token account holding the NFT
     #[account(
         mut,
         associated_token::mint = nft_mint,
@@ -29,6 +33,7 @@ pub struct RepayLoan<'info> {
     )]
     pub vault_nft_account: Account<'info, TokenAccount>,
 
+    // Borrower's token account where the NFT will be returned
     #[account(
         init_if_needed,
         payer = borrower,
@@ -44,9 +49,11 @@ pub struct RepayLoan<'info> {
     )]
     pub vault_authority: UncheckedAccount<'info>,
 
+    // Borrower's account that will repay the loan
     #[account(mut)]
     pub borrower: Signer<'info>,
 
+    // Lender's account that will receive the repayment
     #[account(
         mut,
         constraint = lender.key() == loan_info.lender.unwrap() @ errors::ErrorCode::InvalidLender
@@ -67,7 +74,7 @@ pub fn handle(ctx: Context<RepayLoan>) -> Result<()> {
     let total_repayment = loan_info.loan_amount.checked_add(loan_info.interest_amount)
         .ok_or(errors::ErrorCode::CalculationError)?;
 
-    // Transfer loan amount back to lender
+    // Transfer repayment amount from borrower to lender
     anchor_lang::system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -79,7 +86,7 @@ pub fn handle(ctx: Context<RepayLoan>) -> Result<()> {
         total_repayment,
     )?;
 
-    // Transfer NFT back to borrower
+    // Transfer NFT from vault back to borrower
     let vault_bump = ctx.bumps.vault_authority;
     let nft_seeds = &[
         b"vault".as_ref(),

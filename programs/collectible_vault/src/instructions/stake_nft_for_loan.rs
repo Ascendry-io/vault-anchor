@@ -7,9 +7,10 @@ use {
     },
 };
 
+/// Allows NFT owners to create a loan request by staking their NFT as collateral
 #[derive(Accounts)]
 pub struct StakeNftForLoan<'info> {
-    // Initialize loan info account
+    // PDA account to store loan information, derived from the NFT mint address
     #[account(
         init,
         payer = owner,
@@ -19,10 +20,10 @@ pub struct StakeNftForLoan<'info> {
     )]
     pub loan_info: Account<'info, LoanInfo>,
 
-    // NFT mint account
+    // The NFT being used as collateral
     pub nft_mint: Account<'info, Mint>,
 
-    // Owner's NFT token account (where NFT currently is)
+    // Owner's token account containing the NFT to be staked
     #[account(
         mut,
         associated_token::mint = nft_mint,
@@ -31,7 +32,7 @@ pub struct StakeNftForLoan<'info> {
     )]
     pub owner_nft_account: Account<'info, TokenAccount>,
 
-    // Program's vault token account (where NFT will be transferred)
+    // Program's vault token account where the NFT will be held during the loan
     #[account(
         init_if_needed,
         payer = owner,
@@ -61,20 +62,21 @@ pub fn handle(
     interest_amount: u64,
     duration: i64,
 ) -> Result<()> {
+    // Validate loan duration
     require!(duration > 0, errors::ErrorCode::InvalidLoanDuration);
 
-    // Initialize loan info
+    // Initialize loan request with provided terms
     let loan_info = &mut ctx.accounts.loan_info;
     loan_info.nft_mint = ctx.accounts.nft_mint.key();
     loan_info.nft_owner = ctx.accounts.owner.key();
     loan_info.loan_amount = loan_amount;
     loan_info.interest_amount = interest_amount;
     loan_info.duration = duration;
-    loan_info.start_time = None;
-    loan_info.lender = None;
+    loan_info.start_time = None; // Will be set when loan is funded
+    loan_info.lender = None; // Will be set when loan is funded
     loan_info.is_active = false;
 
-    // Transfer NFT to vault
+    // Transfer NFT from owner to program vault for safekeeping
     anchor_spl::token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
