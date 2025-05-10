@@ -1,7 +1,5 @@
 import * as anchor from '@coral-xyz/anchor';
 import {
-    clusterApiUrl,
-    Connection,
     Keypair,
     PublicKey,
     SystemProgram,
@@ -17,6 +15,7 @@ import { CollectibleVault } from '../target/types/collectible_vault';
 import { assert } from 'chai';
 import { getCollectionAddress, getNftAddress } from '../utils/collection_store';
 import { formatSOL, logBalances, getBalances, logBalanceChanges } from './test-utils';
+import { RPC_CONNECTION } from './constants';
 
 async function stakeNftForLoan(
     program: anchor.Program<CollectibleVault>,
@@ -127,7 +126,6 @@ describe('NFT Loan Flow Tests', () => {
         console.log("========================================\n");
     });
 
-    const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
     const nftOwner = ALTERNATIVE_PAYER_KEYPAIR;  // NFT owner who wants a loan
     const lender = PAYER_KEYPAIR;    // Person providing the loan
 
@@ -137,7 +135,7 @@ describe('NFT Loan Flow Tests', () => {
     console.log(`Lender: ${lender.publicKey.toString()}`);
 
     const wallet = new anchor.Wallet(nftOwner);
-    const provider = new anchor.AnchorProvider(connection, wallet, {});
+    const provider = new anchor.AnchorProvider(RPC_CONNECTION, wallet, {});
     anchor.setProvider(provider);
 
     const program = anchor.workspace.CollectibleVault as anchor.Program<CollectibleVault>;
@@ -199,7 +197,7 @@ describe('NFT Loan Flow Tests', () => {
 
         // Log initial balances
         await logBalances(
-            connection,
+            RPC_CONNECTION,
             [nftOwner.publicKey, lender.publicKey],
             ["NFT Owner", "Lender"]
         );
@@ -453,7 +451,7 @@ describe('NFT Loan Flow Tests', () => {
 
         // Claim NFT
         console.log("Executing claimDelinquentNft transaction...");
-        await program.methods.claimDelinquentNft()
+        const res = await program.methods.claimDelinquentNft()
             .accounts({
                 loanInfo: loanInfoPDA,
                 nftMint: nftMint,
@@ -468,7 +466,7 @@ describe('NFT Loan Flow Tests', () => {
             })
             .signers([lender])
             .rpc();
-
+            console.log(res)
         // Verify NFT is with lender
         const lenderAccount = await provider.connection.getTokenAccountBalance(lenderNftAccount);
         console.log(`NFT tokens in lender's account: ${lenderAccount.value.uiAmount}`);
@@ -478,7 +476,7 @@ describe('NFT Loan Flow Tests', () => {
         
         // Final balances
         await logBalances(
-            connection,
+            RPC_CONNECTION,
             [nftOwner.publicKey, lender.publicKey],
             ["NFT Owner", "Lender"]
         );

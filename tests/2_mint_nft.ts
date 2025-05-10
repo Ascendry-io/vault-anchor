@@ -2,8 +2,6 @@ import * as anchor from '@coral-xyz/anchor';
 import {
 	Keypair,
 	PublicKey,
-	Connection,
-	clusterApiUrl,
 	SystemProgram,
 	ComputeBudgetProgram,
 	SYSVAR_RENT_PUBKEY,
@@ -18,6 +16,7 @@ import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
 import { assert } from 'chai';
 import { getCollectionAddress, saveNftMintAddress } from '../utils/collection_store';
+import { RPC_CONNECTION, TEST_NFT_INFO } from './constants';
 
 // Helper function to format SOL amounts
 const formatSOL = (lamports) => {
@@ -52,12 +51,11 @@ describe('NFT Minting Integration Tests', () => {
 		console.log("========================================\n");
 	});
 
-	const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 	const ADMIN_KEYPAIR = PAYER_KEYPAIR;
 	const OTHER_KEYPAIR = ALTERNATIVE_PAYER_KEYPAIR;
 
 	const wallet = new anchor.Wallet(ADMIN_KEYPAIR);
-	const provider = new anchor.AnchorProvider(connection, wallet, {
+	const provider = new anchor.AnchorProvider(RPC_CONNECTION, wallet, {
 		preflightCommitment: 'confirmed',
 	});
 
@@ -77,8 +75,8 @@ describe('NFT Minting Integration Tests', () => {
 		console.log(`Collection Mint: ${collectionMint.toString()}`);
 		
 		// Log key information about test participants
-		await logAccountInfo(connection, ADMIN_KEYPAIR.publicKey, "Admin (Payer)");
-		await logAccountInfo(connection, OTHER_KEYPAIR.publicKey, "Alternative Payer");
+		await logAccountInfo(RPC_CONNECTION, ADMIN_KEYPAIR.publicKey, "Admin (Payer)");
+		await logAccountInfo(RPC_CONNECTION, OTHER_KEYPAIR.publicKey, "Alternative Payer");
 		
 		console.log(`\nProgram ID: ${program.programId.toString()}`);
 
@@ -194,7 +192,7 @@ describe('NFT Minting Integration Tests', () => {
 		);
 		console.log(`Owner Token Account: ${ownerTokenAccount.toString()}`);
 
-		const metadataUri = 'https://metadata.y00ts.com/y/6869.json';
+		const metadataUri = TEST_NFT_INFO.productDetailUri;
 		console.log(`NFT Metadata URI: ${metadataUri}`);
 
 		console.log("\nPreparing accounts for minting...");
@@ -219,24 +217,24 @@ describe('NFT Minting Integration Tests', () => {
 
 		console.log("Executing mintNft transaction...");
 		console.time("Minting Time");
-		const tx = await program.methods
-			.mintNft(metadataUri)
-			.accounts(accounts)
-			.preInstructions([modifyComputeUnits])
-			.signers([ADMIN_KEYPAIR, mint])
-			.rpc();
-		console.timeEnd("Minting Time");
-
-		console.log(`\n✅ NFT Minted Successfully!`);
-		console.log(`Transaction: ${tx}`);
-		console.log(`Transaction Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
-		console.log(`NFT Mint Address: ${mint.publicKey.toString()}`);
-		console.log(`NFT Explorer: https://explorer.solana.com/address/${mint.publicKey.toString()}?cluster=devnet`);
-		console.log(`Owner Address: ${OTHER_KEYPAIR.publicKey.toString()}`);
 
 		// Verify the owner received the NFT
 		try {
-			const ownerTokenBalance = await connection.getTokenAccountBalance(ownerTokenAccount);
+			const tx = await program.methods
+				.mintNft(TEST_NFT_INFO.productDetailUri)
+				.accounts(accounts)
+				.preInstructions([modifyComputeUnits])
+				.signers([ADMIN_KEYPAIR, mint])
+				.rpc();
+			console.timeEnd("Minting Time");
+
+			console.log(`\n✅ NFT Minted Successfully!`);
+			console.log(`Transaction: ${tx}`);
+			console.log(`Transaction Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
+			console.log(`NFT Mint Address: ${mint.publicKey.toString()}`);
+			console.log(`NFT Explorer: https://explorer.solana.com/address/${mint.publicKey.toString()}?cluster=devnet`);
+			console.log(`Owner Address: ${OTHER_KEYPAIR.publicKey.toString()}`);
+			const ownerTokenBalance = await RPC_CONNECTION.getTokenAccountBalance(ownerTokenAccount);
 			console.log(`\nVerifying NFT ownership...`);
 			console.log(`Token Account Balance: ${ownerTokenBalance.value.uiAmount} NFT`);
 			assert.equal(ownerTokenBalance.value.uiAmount, 1, "Owner should have received 1 NFT");
@@ -325,8 +323,7 @@ describe('NFT Minting Integration Tests', () => {
 		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, OTHER_KEYPAIR.publicKey);
 		console.log(`Unauthorized Owner Token Account: ${tokenAccount.toString()}`);
 
-		const metadataUri = 'https://metadata.y00ts.com/y/6869.json';
-		console.log(`NFT Metadata URI: ${metadataUri}`);
+		console.log(`NFT Metadata URI: ${TEST_NFT_INFO.productDetailUri}`);
 
 		console.log("\nPreparing accounts for unauthorized minting attempt...");
 		const accounts = {
@@ -352,7 +349,7 @@ describe('NFT Minting Integration Tests', () => {
 		try {
 			console.time("Unauthorized Attempt Time");
 			const tx = await program.methods
-				.mintNft(metadataUri)
+				.mintNft(TEST_NFT_INFO.productDetailUri)
 				.accounts(accounts)
 				.preInstructions([modifyComputeUnits])
 				.signers([OTHER_KEYPAIR, mint])
@@ -365,7 +362,7 @@ describe('NFT Minting Integration Tests', () => {
 			console.timeEnd("Unauthorized Attempt Time");
 			console.log('\n✅ Expected error received from unauthorized mint attempt:');
 			console.log('---------------------------------------');
-			console.log(err.message.slice(0, 500) + (err.message.length > 500 ? '...' : ''));
+			// console.log(err.message.slice(0, 500) + (err.message.length > 500 ? '...' : ''));
 			console.log('---------------------------------------');
 
 			// Check for the specific error

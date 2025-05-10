@@ -84,7 +84,7 @@ pub fn handle(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
     let collection_counter = &mut ctx.accounts.collection_counter;
     collection_counter.count += 1;
 
-    let name: String = format!("Item #{}", collection_counter.count);
+    let name: String = format!("Ascendry Item #{}", collection_counter.count);
 
     let data = DataV2 {
         name: name,

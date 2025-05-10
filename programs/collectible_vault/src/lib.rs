@@ -15,7 +15,7 @@ use {
     instructions::claim_delinquent_nft::*,
 };
 
-declare_id!("Bk73CJxtKr2Z9X9sKUwEvoafHXSnX7xPpLUhT9ujLXwU");
+declare_id!("AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6");
 
 #[program]
 pub mod collectible_vault {
