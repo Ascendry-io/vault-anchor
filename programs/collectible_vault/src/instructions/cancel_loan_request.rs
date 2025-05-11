@@ -7,6 +7,10 @@ use {
     },
 };
 
+/**
+ * Allows a borrower to cancel their loan request before it's funded.
+ * This instruction returns the staked NFT to the owner.
+ */
 #[derive(Accounts)]
 pub struct CancelLoanRequest<'info> {
     #[account(mut)]

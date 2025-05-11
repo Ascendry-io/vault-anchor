@@ -3,6 +3,10 @@ use {
     anchor_spl::token::{Mint, Token, TokenAccount},
 };
 
+/**
+ * Allows a user to burn their NFT.
+ * This instruction burns the NFT from the user's token account. No use-case yet, but once item redemption is implemented, this will be used to burn the NFT from the user's token account.
+ */
 #[derive(Accounts)]
 pub struct BurnNFT<'info> {
     #[account(mut)]

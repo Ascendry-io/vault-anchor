@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 
-/// Tracks the number of NFTs minted in a collection
-/// This account is used to maintain a counter for NFTs in a specific collection
+/**
+ * Tracks the number of NFTs minted in a collection.
+ * This account is used to maintain a counter for NFTs in a specific collection.
+ */
 #[account]
 #[derive(InitSpace)]
 pub struct CollectionCounter {
@@ -18,26 +20,28 @@ impl CollectionCounter {
         8; // count (u64)
 }
 
-/// Stores information about a loan request or active loan
-/// This account tracks all the details of a loan using an NFT as collateral
+/**
+ * Stores information about a loan request or active loan.
+ * This account tracks all the details of a loan using an NFT as collateral.
+ */
 #[account]
 #[derive(Default)]
 pub struct LoanInfo {
-    /// The mint address of the NFT being used as collateral
+    /// The mint address of the NFT being used as collateral.
     pub nft_mint: Pubkey,
-    /// The public key of the original owner of the NFT
+    /// The public key of the original owner of the NFT.    
     pub nft_owner: Pubkey,
-    /// The amount of lamports requested for the loan
+    /// The amount of lamports requested for the loan.
     pub loan_amount: u64,
-    /// The interest amount to be paid on the loan
+    /// The interest amount to be paid on the loan.
     pub interest_amount: u64,
-    /// The duration of the loan in seconds
+    /// The duration of the loan in seconds.
     pub duration: i64,
-    /// The timestamp when the loan becomes active (None if not yet funded)
+    /// The timestamp when the loan becomes active (None if not yet funded).
     pub start_time: Option<i64>,
-    /// The public key of the lender (None if not yet funded)
+    /// The public key of the lender (None if not yet funded).
     pub lender: Option<Pubkey>,
-    /// Indicates whether the loan is currently active
+    /// Indicates whether the loan is currently active.
     pub is_active: bool,
 }
 

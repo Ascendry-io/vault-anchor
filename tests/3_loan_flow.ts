@@ -113,6 +113,8 @@ async function provideLoanLiquidity(
 }
 
 describe('NFT Loan Flow Tests', () => {
+    throw new Error("WHILE ASCENDRY IS IN DEVELOPMENT, DO NOT RUN THESE TESTS, AS THEY WILL POPULATE NFTs INTO THE SYSTEM. THIS IS NOT DESIRED BEHAVIOR.");
+
     // Set up test banner for better visibility in logs
     before(() => {
         console.log("\n========================================");

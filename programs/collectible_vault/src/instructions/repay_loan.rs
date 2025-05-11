@@ -7,7 +7,10 @@ use {
     },
 };
 
-/// Allows borrowers to repay their loan and retrieve their NFT
+/**
+ * Allows borrowers to repay their loan and retrieve their NFT.
+ * This instruction closes the loan account and returns the NFT to the borrower.
+ */
 #[derive(Accounts)]
 pub struct RepayLoan<'info> {
     // Loan account that will be closed after repayment

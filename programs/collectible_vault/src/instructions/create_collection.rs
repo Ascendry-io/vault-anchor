@@ -15,6 +15,11 @@ use {
     },
 };
 
+/**
+ * Allows the admin to create a new collection for NFTs.
+ * This instruction initializes a collection counter account and creates metadata for the collection.
+ * NOTE: For now, Ascendry intends to only have one collection, so this instruction is not used; but in the future, we may split entire inventories by authenticator or category.
+ */
 #[derive(Accounts)]
 pub struct CreateCollection<'info> {
     #[account(

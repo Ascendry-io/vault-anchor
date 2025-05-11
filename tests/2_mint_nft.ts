@@ -38,6 +38,8 @@ export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 );
 
 describe('NFT Minting Integration Tests', () => {
+	throw new Error("WHILE ASCENDRY IS IN DEVELOPMENT, DO NOT RUN THESE TESTS, AS THEY WILL POPULATE NFTs INTO THE SYSTEM. THIS IS NOT DESIRED BEHAVIOR.");
+
 	// Set up test banner for better visibility in logs
 	before(() => {
 		console.log("\n========================================");

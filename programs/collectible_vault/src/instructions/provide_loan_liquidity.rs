@@ -3,7 +3,10 @@ use {
     anchor_lang::prelude::*,
 };
 
-/// Allows lenders to fund a loan request and make it active
+/**
+ * Allows lenders to fund a loan request and make it active.
+ * This instruction updates the loan request account with the lender's information and marks it as active.
+ */
 #[derive(Accounts)]
 pub struct ProvideLoanLiquidity<'info> {
     // Loan request account that will be updated with lender information

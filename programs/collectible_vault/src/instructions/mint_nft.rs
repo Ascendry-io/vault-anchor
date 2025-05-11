@@ -14,6 +14,10 @@ use {
     },
 };
 
+/**
+ * Allows the admin to mint a new NFT.
+ * This instruction creates a new NFT with the provided product detail URI.
+ */
 #[derive(Accounts)]
 pub struct MintNFT<'info> {
     #[account(
@@ -179,8 +183,6 @@ pub fn handle(ctx: Context<MintNFT>, product_detail_uri: String) -> Result<()> {
         ],
     )?;
 
-    // Now verify the collection membership
-    // In the mint_nft function, replace the verify_collection part with this:
     // Now verify the collection membership
     let verify_ix = VerifySizedCollectionItem {
         metadata: ctx.accounts.metadata.key(),

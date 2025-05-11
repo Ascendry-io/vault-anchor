@@ -7,7 +7,10 @@ use {
     },
 };
 
-/// Allows NFT owners to create a loan request by staking their NFT as collateral
+/**
+ * Allows NFT owners to create a loan request by staking their NFT as collateral.
+ * This instruction initializes a loan request account and transfers the NFT to the program's vault for intermediary holding..
+ */
 #[derive(Accounts)]
 pub struct StakeNftForLoan<'info> {
     // PDA account to store loan information, derived from the NFT mint address

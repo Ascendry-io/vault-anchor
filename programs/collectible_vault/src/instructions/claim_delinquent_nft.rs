@@ -7,7 +7,10 @@ use {
     },
 };
 
-/// Allows lenders to claim the NFT collateral when a loan is not repaid on time
+/**
+ * Allows lenders to claim the NFT collateral when a loan is not repaid on time.
+ * This instruction closes the loan account and transfers the NFT to the lender.
+ */
 #[derive(Accounts)]
 pub struct ClaimDelinquentNft<'info> {
     // Loan account that will be closed after claiming the NFT
