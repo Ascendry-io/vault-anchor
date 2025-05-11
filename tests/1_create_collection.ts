@@ -31,9 +31,9 @@ describe('Create Collection', () => {
 	let collectionExists = false;
 
 	before(async () => {
-		console.log("\n========================================");
-		console.log("🔍 CHECKING FOR EXISTING COLLECTION");
-		console.log("========================================\n");
+		console.log('\n========================================');
+		console.log('🔍 CHECKING FOR EXISTING COLLECTION');
+		console.log('========================================\n');
 
 		// Check if collection PDA already exists
 		try {
@@ -41,7 +41,7 @@ describe('Create Collection', () => {
 			const existingCollection = getCollectionAddress();
 			if (existingCollection) {
 				console.log(`Existing collection found: ${existingCollection.toString()}`);
-				
+
 				// Check if the collection counter PDA exists on-chain
 				[collectionCounterPDA] = await PublicKey.findProgramAddress(
 					[Buffer.from('vault_collection_counter')],
@@ -49,18 +49,20 @@ describe('Create Collection', () => {
 				);
 
 				try {
-					const collectionCounterAccount = await program.account.collectionCounter.fetch(collectionCounterPDA);
-					console.log("Collection counter account exists on-chain.");
+					const collectionCounterAccount = await program.account.collectionCounter.fetch(
+						collectionCounterPDA
+					);
+					console.log('Collection counter account exists on-chain.');
 					console.log(`Collection counter value: ${collectionCounterAccount.count}`);
 					console.log(`Collection mint: ${collectionCounterAccount.collectionMint.toString()}`);
 					collectionExists = true;
 				} catch (err) {
-					console.log("Collection counter PDA not found on-chain, will proceed with tests.");
+					console.log('Collection counter PDA not found on-chain, will proceed with tests.');
 					collectionExists = false;
 				}
 			}
 		} catch (err) {
-			console.log("No existing collection found in store, will create a new one.");
+			console.log('No existing collection found in store, will create a new one.');
 		}
 
 		if (!collectionExists) {
@@ -93,18 +95,22 @@ describe('Create Collection', () => {
 		}
 	});
 
-	it('should fail to create a collection with UnauthorizedTransactionSigner', async function() {
+	it('should fail to create a collection with UnauthorizedTransactionSigner', async function () {
 		// Skip test if collection already exists
 		if (collectionExists) {
-			console.log("Skipping unauthorized signer test as collection already exists");
+			console.log('Skipping unauthorized signer test as collection already exists');
 			this.skip();
 			return;
 		}
 
-		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, ALTERNATIVE_PAYER_KEYPAIR.publicKey);
+		const tokenAccount = await getAssociatedTokenAddress(
+			mint.publicKey,
+			ALTERNATIVE_PAYER_KEYPAIR.publicKey
+		);
 
 		try {
-			await program.methods.createCollection()
+			await program.methods
+				.createCollection()
 				.accounts({
 					mint: mint.publicKey,
 					metadata: metadataPDA,
@@ -130,28 +136,29 @@ describe('Create Collection', () => {
 			if (!err.message.includes('UnauthorizedTransactionSigner')) {
 				throw new Error(`Unexpected error: ${err.message}`);
 			}
-			
-			console.log("✅ Test passed: Unauthorized signer correctly rejected");
+
+			console.log('✅ Test passed: Unauthorized signer correctly rejected');
 		}
 	});
 
-	it('should create a collection', async function() {
+	it('should create a collection', async function () {
 		// Skip test if collection already exists
 		if (collectionExists) {
-			console.log("Skipping collection creation test as collection already exists");
+			console.log('Skipping collection creation test as collection already exists');
 			this.skip();
 			return;
 		}
 
-		console.log("\n========================================");
-		console.log("🔨 CREATING NEW COLLECTION");
-		console.log("========================================\n");
+		console.log('\n========================================');
+		console.log('🔨 CREATING NEW COLLECTION');
+		console.log('========================================\n');
 
 		// Generate the associated token account for the mint
 		const tokenAccount = await getAssociatedTokenAddress(mint.publicKey, PAYER_KEYPAIR.publicKey);
-		
-		console.log("Submitting createCollection transaction...");
-		const tx = await program.methods.createCollection()
+
+		console.log('Submitting createCollection transaction...');
+		const tx = await program.methods
+			.createCollection()
 			.accounts({
 				mint: mint.publicKey,
 				metadata: metadataPDA,
@@ -177,40 +184,46 @@ describe('Create Collection', () => {
 
 		// Save collection address for other tests
 		saveCollectionAddress(mint.publicKey.toString());
-		
+
 		// Verify collection counter account was created
 		try {
-			const collectionCounterAccount = await program.account.collectionCounter.fetch(collectionCounterPDA);
-			console.log(`✅ Collection counter initialized with count: ${collectionCounterAccount.count}`);
-			console.log(`Collection mint stored in counter: ${collectionCounterAccount.collectionMint.toString()}`);
-			
+			const collectionCounterAccount = await program.account.collectionCounter.fetch(
+				collectionCounterPDA
+			);
+			console.log(
+				`✅ Collection counter initialized with count: ${collectionCounterAccount.count}`
+			);
+			console.log(
+				`Collection mint stored in counter: ${collectionCounterAccount.collectionMint.toString()}`
+			);
+
 			// Verify the stored mint matches our mint
 			if (!collectionCounterAccount.collectionMint.equals(mint.publicKey)) {
 				console.warn("⚠️ Warning: Collection mint in counter doesn't match the mint we created!");
 			}
 		} catch (err) {
-			console.error("❌ Failed to fetch collection counter account:", err);
+			console.error('❌ Failed to fetch collection counter account:', err);
 			throw err;
 		}
 	});
 
 	// Add a summary test that always runs
-	it('should provide collection information', function() {
+	it('should provide collection information', function () {
 		try {
 			const existingCollection = getCollectionAddress();
-			console.log("\n========================================");
-			console.log("ℹ️ COLLECTION INFORMATION");
-			console.log("========================================");
+			console.log('\n========================================');
+			console.log('ℹ️ COLLECTION INFORMATION');
+			console.log('========================================');
 			console.log(`Collection Mint Address: ${existingCollection.toString()}`);
-			
+
 			if (collectionExists) {
-				console.log("Status: Collection already existed before this test run");
+				console.log('Status: Collection already existed before this test run');
 			} else {
-				console.log("Status: Collection was created during this test run");
+				console.log('Status: Collection was created during this test run');
 			}
-			console.log("========================================\n");
+			console.log('========================================\n');
 		} catch (err) {
-			console.error("❌ Failed to get collection information:", err);
+			console.error('❌ Failed to get collection information:', err);
 		}
 	});
 });

@@ -20,7 +20,7 @@ import { RPC_CONNECTION, TEST_NFT_INFO } from './constants';
 
 // Helper function to format SOL amounts
 const formatSOL = (lamports) => {
-	return (lamports / anchor.web3.LAMPORTS_PER_SOL).toFixed(4) + " SOL";
+	return (lamports / anchor.web3.LAMPORTS_PER_SOL).toFixed(4) + ' SOL';
 };
 
 // Helper to log account information
@@ -38,19 +38,21 @@ export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 );
 
 describe('NFT Minting Integration Tests', () => {
-	throw new Error("WHILE ASCENDRY IS IN DEVELOPMENT, DO NOT RUN THESE TESTS, AS THEY WILL POPULATE NFTs INTO THE SYSTEM. THIS IS NOT DESIRED BEHAVIOR.");
+	throw new Error(
+		'WHILE ASCENDRY IS IN DEVELOPMENT, DO NOT RUN THESE TESTS, AS THEY WILL POPULATE NFTs INTO THE SYSTEM. THIS IS NOT DESIRED BEHAVIOR.'
+	);
 
 	// Set up test banner for better visibility in logs
 	before(() => {
-		console.log("\n========================================");
-		console.log("🧪 STARTING NFT MINTING INTEGRATION TESTS");
-		console.log("========================================\n");
+		console.log('\n========================================');
+		console.log('🧪 STARTING NFT MINTING INTEGRATION TESTS');
+		console.log('========================================\n');
 	});
 
 	after(() => {
-		console.log("\n========================================");
-		console.log("✅ NFT MINTING INTEGRATION TESTS COMPLETED");
-		console.log("========================================\n");
+		console.log('\n========================================');
+		console.log('✅ NFT MINTING INTEGRATION TESTS COMPLETED');
+		console.log('========================================\n');
 	});
 
 	const ADMIN_KEYPAIR = PAYER_KEYPAIR;
@@ -70,16 +72,16 @@ describe('NFT Minting Integration Tests', () => {
 	let collectionCounterPDA: PublicKey;
 
 	before(async () => {
-		console.log("\n📋 Setting up test accounts and PDAs...");
-		
+		console.log('\n📋 Setting up test accounts and PDAs...');
+
 		// Get the existing collection address
 		collectionMint = getCollectionAddress();
 		console.log(`Collection Mint: ${collectionMint.toString()}`);
-		
+
 		// Log key information about test participants
-		await logAccountInfo(RPC_CONNECTION, ADMIN_KEYPAIR.publicKey, "Admin (Payer)");
-		await logAccountInfo(RPC_CONNECTION, OTHER_KEYPAIR.publicKey, "Alternative Payer");
-		
+		await logAccountInfo(RPC_CONNECTION, ADMIN_KEYPAIR.publicKey, 'Admin (Payer)');
+		await logAccountInfo(RPC_CONNECTION, OTHER_KEYPAIR.publicKey, 'Alternative Payer');
+
 		console.log(`\nProgram ID: ${program.programId.toString()}`);
 
 		// Derive PDAs
@@ -105,24 +107,26 @@ describe('NFT Minting Integration Tests', () => {
 			program.programId
 		);
 		console.log(`Collection Counter PDA: ${collectionCounterPDA.toString()}`);
-		
+
 		// Fetch and log collection counter info
 		try {
 			const counterInfo = await program.account.collectionCounter.fetch(collectionCounterPDA);
 			console.log(`Collection counter value: ${counterInfo.count.toString()}`);
 			console.log(`Collection mint in counter: ${counterInfo.collectionMint.toString()}`);
-			
+
 			if (!counterInfo.collectionMint.equals(collectionMint)) {
-				console.warn("⚠️ WARNING: Collection mint in counter doesn't match expected collection mint!");
+				console.warn(
+					"⚠️ WARNING: Collection mint in counter doesn't match expected collection mint!"
+				);
 			}
 		} catch (err) {
-			console.error("Error fetching collection counter:", err.message);
+			console.error('Error fetching collection counter:', err.message);
 		}
 	});
 
 	it('admin wallet should be able to mint an NFT', async () => {
-		console.log("\n🔨 TEST: Admin minting an NFT...");
-		
+		console.log('\n🔨 TEST: Admin minting an NFT...');
+
 		// Add compute budget instruction
 		const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
 			units: 300000,
@@ -166,11 +170,7 @@ describe('NFT Minting Integration Tests', () => {
 
 		// Derive collection metadata PDA
 		const [collectionMetadataPDA] = PublicKey.findProgramAddressSync(
-			[
-				Buffer.from('metadata'),
-				METADATA_PROGRAM_ID.toBuffer(),
-				collectionMint.toBuffer(),
-			],
+			[Buffer.from('metadata'), METADATA_PROGRAM_ID.toBuffer(), collectionMint.toBuffer()],
 			METADATA_PROGRAM_ID
 		);
 		console.log(`Collection Metadata PDA: ${collectionMetadataPDA.toString()}`);
@@ -190,14 +190,14 @@ describe('NFT Minting Integration Tests', () => {
 		// Get the associated token account for the owner
 		const ownerTokenAccount = await getAssociatedTokenAddress(
 			mint.publicKey,
-			OTHER_KEYPAIR.publicKey  // Using altPayer as the owner in this example
+			OTHER_KEYPAIR.publicKey // Using altPayer as the owner in this example
 		);
 		console.log(`Owner Token Account: ${ownerTokenAccount.toString()}`);
 
 		const metadataUri = TEST_NFT_INFO.productDetailUri;
 		console.log(`NFT Metadata URI: ${metadataUri}`);
 
-		console.log("\nPreparing accounts for minting...");
+		console.log('\nPreparing accounts for minting...');
 		const accounts = {
 			mint: mint.publicKey,
 			metadata: metadataPDA,
@@ -217,8 +217,8 @@ describe('NFT Minting Integration Tests', () => {
 			collectionCounter: collectionCounterPDA,
 		};
 
-		console.log("Executing mintNft transaction...");
-		console.time("Minting Time");
+		console.log('Executing mintNft transaction...');
+		console.time('Minting Time');
 
 		// Verify the owner received the NFT
 		try {
@@ -228,40 +228,42 @@ describe('NFT Minting Integration Tests', () => {
 				.preInstructions([modifyComputeUnits])
 				.signers([ADMIN_KEYPAIR, mint])
 				.rpc();
-			console.timeEnd("Minting Time");
+			console.timeEnd('Minting Time');
 
 			console.log(`\n✅ NFT Minted Successfully!`);
 			console.log(`Transaction: ${tx}`);
 			console.log(`Transaction Explorer: https://explorer.solana.com/tx/${tx}?cluster=devnet`);
 			console.log(`NFT Mint Address: ${mint.publicKey.toString()}`);
-			console.log(`NFT Explorer: https://explorer.solana.com/address/${mint.publicKey.toString()}?cluster=devnet`);
+			console.log(
+				`NFT Explorer: https://explorer.solana.com/address/${mint.publicKey.toString()}?cluster=devnet`
+			);
 			console.log(`Owner Address: ${OTHER_KEYPAIR.publicKey.toString()}`);
 			const ownerTokenBalance = await RPC_CONNECTION.getTokenAccountBalance(ownerTokenAccount);
 			console.log(`\nVerifying NFT ownership...`);
 			console.log(`Token Account Balance: ${ownerTokenBalance.value.uiAmount} NFT`);
-			assert.equal(ownerTokenBalance.value.uiAmount, 1, "Owner should have received 1 NFT");
+			assert.equal(ownerTokenBalance.value.uiAmount, 1, 'Owner should have received 1 NFT');
 			console.log(`✅ Ownership verification successful`);
 		} catch (err) {
 			console.error(`❌ Token verification failed: ${err.message}`);
 			throw err;
 		}
-		
+
 		// Save NFT mint address for future use
 		saveNftMintAddress(mint.publicKey.toString());
 		console.log(`NFT mint address saved for future reference`);
-		
+
 		// Fetch updated collection counter value
 		try {
 			const counterInfo = await program.account.collectionCounter.fetch(collectionCounterPDA);
 			console.log(`Updated collection counter value: ${counterInfo.count.toString()}`);
 		} catch (err) {
-			console.error("Error fetching updated collection counter:", err.message);
+			console.error('Error fetching updated collection counter:', err.message);
 		}
 	});
 
 	it('other wallets should not be able to mint an NFT', async () => {
-		console.log("\n🔒 TEST: Unauthorized wallet attempting to mint an NFT...");
-		
+		console.log('\n🔒 TEST: Unauthorized wallet attempting to mint an NFT...');
+
 		// Add compute budget instruction
 		const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
 			units: 300000,
@@ -302,11 +304,7 @@ describe('NFT Minting Integration Tests', () => {
 
 		// Derive collection metadata PDA
 		const [collectionMetadataPDA] = PublicKey.findProgramAddressSync(
-			[
-				Buffer.from('metadata'),
-				METADATA_PROGRAM_ID.toBuffer(),
-				collectionMint.toBuffer(),
-			],
+			[Buffer.from('metadata'), METADATA_PROGRAM_ID.toBuffer(), collectionMint.toBuffer()],
 			METADATA_PROGRAM_ID
 		);
 
@@ -327,7 +325,7 @@ describe('NFT Minting Integration Tests', () => {
 
 		console.log(`NFT Metadata URI: ${TEST_NFT_INFO.productDetailUri}`);
 
-		console.log("\nPreparing accounts for unauthorized minting attempt...");
+		console.log('\nPreparing accounts for unauthorized minting attempt...');
 		const accounts = {
 			mint: mint.publicKey,
 			metadata: metadataPDA,
@@ -347,21 +345,21 @@ describe('NFT Minting Integration Tests', () => {
 			collectionCounter: collectionCounterPDA,
 		};
 
-		console.log("Executing mintNft transaction with unauthorized wallet (expected to fail)...");
+		console.log('Executing mintNft transaction with unauthorized wallet (expected to fail)...');
 		try {
-			console.time("Unauthorized Attempt Time");
+			console.time('Unauthorized Attempt Time');
 			const tx = await program.methods
 				.mintNft(TEST_NFT_INFO.productDetailUri)
 				.accounts(accounts)
 				.preInstructions([modifyComputeUnits])
 				.signers([OTHER_KEYPAIR, mint])
 				.rpc();
-			console.timeEnd("Unauthorized Attempt Time");
+			console.timeEnd('Unauthorized Attempt Time');
 
 			console.log(`❌ ERROR: Transaction should have failed but succeeded: ${tx}`);
 			throw new Error('Test failed: transaction did not throw an error');
 		} catch (err) {
-			console.timeEnd("Unauthorized Attempt Time");
+			console.timeEnd('Unauthorized Attempt Time');
 			console.log('\n✅ Expected error received from unauthorized mint attempt:');
 			console.log('---------------------------------------');
 			// console.log(err.message.slice(0, 500) + (err.message.length > 500 ? '...' : ''));
@@ -369,11 +367,13 @@ describe('NFT Minting Integration Tests', () => {
 
 			// Check for the specific error
 			if (!err.message.includes('UnauthorizedTransactionSigner')) {
-				console.error(`❌ Unexpected error type. Expected 'UnauthorizedTransactionSigner' but got different error.`);
+				console.error(
+					`❌ Unexpected error type. Expected 'UnauthorizedTransactionSigner' but got different error.`
+				);
 				throw new Error(`Unexpected error: ${err.message}`);
 			}
-			
-			console.log("✅ Test passed: Unauthorized signer correctly rejected");
+
+			console.log('✅ Test passed: Unauthorized signer correctly rejected');
 		}
 	});
 });

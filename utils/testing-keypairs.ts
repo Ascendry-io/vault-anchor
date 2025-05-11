@@ -7,14 +7,15 @@ const ALT_PRIVATE_KEY_BASE_58 = process.env.ALT_PRIVATE_KEY_BASE_58;
 const PROGRAM_PRIVATE_KEY = process.env.PROGRAM_PRIVATE_KEY;
 
 if (!PRIVATE_KEY_BASE_58 || !ALT_PRIVATE_KEY_BASE_58 || !PROGRAM_PRIVATE_KEY) {
-    throw new Error('Required environment variables are not set');
+	throw new Error('Required environment variables are not set');
 }
 
 export const PAYER_KEYPAIR: Keypair = getKeypairFromBase58Array(PRIVATE_KEY_BASE_58);
-export const ALTERNATIVE_PAYER_KEYPAIR: Keypair = getKeypairFromBase58Array(ALT_PRIVATE_KEY_BASE_58);
+export const ALTERNATIVE_PAYER_KEYPAIR: Keypair =
+	getKeypairFromBase58Array(ALT_PRIVATE_KEY_BASE_58);
 export const PROGRAM_KEYPAIR: Keypair = getKeypairFromBase58Array(PROGRAM_PRIVATE_KEY);
 
 // Log the public keys for verification
-console.log("Program Keypair: ", PROGRAM_KEYPAIR.publicKey.toBase58());
-console.log("Payer Keypair: ", PAYER_KEYPAIR.publicKey.toBase58());
-console.log("Alternative Payer Keypair: ", ALTERNATIVE_PAYER_KEYPAIR.publicKey.toBase58()); 
+console.log('Program Keypair: ', PROGRAM_KEYPAIR.publicKey.toBase58());
+console.log('Payer Keypair: ', PAYER_KEYPAIR.publicKey.toBase58());
+console.log('Alternative Payer Keypair: ', ALTERNATIVE_PAYER_KEYPAIR.publicKey.toBase58());
