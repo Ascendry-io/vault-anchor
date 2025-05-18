@@ -10,7 +10,7 @@ import { CollectibleVault } from '../target/types/collectible_vault';
 import { assert } from 'chai';
 import { getCollectionAddress, getNftAddress } from '../utils/collection_store';
 import { formatSOL, logBalances, getBalances, logBalanceChanges } from './test-utils';
-import { RPC_CONNECTION } from './constants';
+import { TEST_RPC_CONNECTION } from './constants';
 
 async function stakeNftForLoan(
 	program: anchor.Program<CollectibleVault>,
@@ -106,10 +106,6 @@ async function provideLoanLiquidity(
 }
 
 describe('NFT Loan Flow Tests', () => {
-	throw new Error(
-		'WHILE ASCENDRY IS IN DEVELOPMENT, DO NOT RUN THESE TESTS, AS THEY WILL POPULATE NFTs INTO THE SYSTEM. THIS IS NOT DESIRED BEHAVIOR.'
-	);
-
 	// Set up test banner for better visibility in logs
 	before(() => {
 		console.log('\n========================================');
@@ -132,7 +128,7 @@ describe('NFT Loan Flow Tests', () => {
 	console.log(`Lender: ${lender.publicKey.toString()}`);
 
 	const wallet = new anchor.Wallet(nftOwner);
-	const provider = new anchor.AnchorProvider(RPC_CONNECTION, wallet, {});
+	const provider = new anchor.AnchorProvider(TEST_RPC_CONNECTION, wallet, {});
 	anchor.setProvider(provider);
 
 	const program = anchor.workspace.CollectibleVault as anchor.Program<CollectibleVault>;
@@ -184,7 +180,7 @@ describe('NFT Loan Flow Tests', () => {
 
 		// Log initial balances
 		await logBalances(
-			RPC_CONNECTION,
+			TEST_RPC_CONNECTION,
 			[nftOwner.publicKey, lender.publicKey],
 			['NFT Owner', 'Lender']
 		);
@@ -469,7 +465,7 @@ describe('NFT Loan Flow Tests', () => {
 
 		// Final balances
 		await logBalances(
-			RPC_CONNECTION,
+			TEST_RPC_CONNECTION,
 			[nftOwner.publicKey, lender.publicKey],
 			['NFT Owner', 'Lender']
 		);

@@ -5,7 +5,7 @@ pub mod state;
 
 use {
     anchor_lang::prelude::*, 
-    instructions::burn_nft::*, 
+    instructions::create_asset_redemption_request::*, 
     instructions::cancel_loan_request::*,
     instructions::create_collection::*, 
     instructions::mint_nft::*, 
@@ -38,11 +38,11 @@ pub mod collectible_vault {
     }
 
     /**
-     * Burns an existing NFT.
-     * This instruction permanently removes an NFT from circulation.
+     * Creates a new asset redemption request for a digital collectible.
+     * This instruction allows a user to create a redemption request for their digital collectible.
      */
-    pub fn burn_nft(ctx: Context<BurnNFT>) -> Result<()> {
-        instructions::burn_nft::handle(ctx)
+    pub fn create_asset_redemption_request(ctx: Context<CreateAssetRedemptionRequest>) -> Result<()> {
+        instructions::create_asset_redemption_request::handle(ctx)
     }
 
     /**

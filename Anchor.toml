@@ -8,13 +8,13 @@ skip-lint = false
 collectible_vault = "AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6"
 
 [programs.localnet]
-collectible_vault = "EWjqcPNsohKJykuHxBG6X6LVpRu1ki2uBRrnzRwtx4uh"
+collectible_vault = "AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

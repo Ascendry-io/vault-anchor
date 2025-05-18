@@ -9,15 +9,11 @@ import { PAYER_KEYPAIR, ALTERNATIVE_PAYER_KEYPAIR } from '../utils/testing-keypa
 import idl from '../target/idl/collectible_vault.json';
 import { CollectibleVault } from '../target/types/collectible_vault';
 import { saveCollectionAddress, getCollectionAddress } from '../utils/collection_store';
-import { RPC_CONNECTION } from './constants';
-
-export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
-	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
-);
+import { METADATA_PROGRAM_ID, TEST_RPC_CONNECTION } from './constants';
 
 describe('Create Collection', () => {
 	const wallet = new anchor.Wallet(PAYER_KEYPAIR);
-	const provider = new anchor.AnchorProvider(RPC_CONNECTION, wallet, {
+	const provider = new anchor.AnchorProvider(TEST_RPC_CONNECTION, wallet, {
 		preflightCommitment: 'confirmed',
 	});
 

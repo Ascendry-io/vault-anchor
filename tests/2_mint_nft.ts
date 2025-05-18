@@ -16,12 +16,8 @@ import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
 import { assert } from 'chai';
 import { getCollectionAddress, saveNftMintAddress } from '../utils/collection_store';
-import { RPC_CONNECTION, TEST_NFT_INFO } from './constants';
-
-// Helper function to format SOL amounts
-const formatSOL = (lamports) => {
-	return (lamports / anchor.web3.LAMPORTS_PER_SOL).toFixed(4) + ' SOL';
-};
+import { TEST_RPC_CONNECTION, TEST_NFT_INFO, METADATA_PROGRAM_ID } from './constants';
+import { formatSOL } from './test-utils';
 
 // Helper to log account information
 const logAccountInfo = async (connection, account, label) => {
@@ -33,15 +29,7 @@ const logAccountInfo = async (connection, account, label) => {
 	}
 };
 
-export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
-	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
-);
-
 describe('NFT Minting Integration Tests', () => {
-	throw new Error(
-		'WHILE ASCENDRY IS IN DEVELOPMENT, DO NOT RUN THESE TESTS, AS THEY WILL POPULATE NFTs INTO THE SYSTEM. THIS IS NOT DESIRED BEHAVIOR.'
-	);
-
 	// Set up test banner for better visibility in logs
 	before(() => {
 		console.log('\n========================================');
@@ -59,7 +47,7 @@ describe('NFT Minting Integration Tests', () => {
 	const OTHER_KEYPAIR = ALTERNATIVE_PAYER_KEYPAIR;
 
 	const wallet = new anchor.Wallet(ADMIN_KEYPAIR);
-	const provider = new anchor.AnchorProvider(RPC_CONNECTION, wallet, {
+	const provider = new anchor.AnchorProvider(TEST_RPC_CONNECTION, wallet, {
 		preflightCommitment: 'confirmed',
 	});
 
@@ -79,8 +67,8 @@ describe('NFT Minting Integration Tests', () => {
 		console.log(`Collection Mint: ${collectionMint.toString()}`);
 
 		// Log key information about test participants
-		await logAccountInfo(RPC_CONNECTION, ADMIN_KEYPAIR.publicKey, 'Admin (Payer)');
-		await logAccountInfo(RPC_CONNECTION, OTHER_KEYPAIR.publicKey, 'Alternative Payer');
+		await logAccountInfo(TEST_RPC_CONNECTION, ADMIN_KEYPAIR.publicKey, 'Admin (Payer)');
+		await logAccountInfo(TEST_RPC_CONNECTION, OTHER_KEYPAIR.publicKey, 'Alternative Payer');
 
 		console.log(`\nProgram ID: ${program.programId.toString()}`);
 
@@ -238,7 +226,7 @@ describe('NFT Minting Integration Tests', () => {
 				`NFT Explorer: https://explorer.solana.com/address/${mint.publicKey.toString()}?cluster=devnet`
 			);
 			console.log(`Owner Address: ${OTHER_KEYPAIR.publicKey.toString()}`);
-			const ownerTokenBalance = await RPC_CONNECTION.getTokenAccountBalance(ownerTokenAccount);
+			const ownerTokenBalance = await TEST_RPC_CONNECTION.getTokenAccountBalance(ownerTokenAccount);
 			console.log(`\nVerifying NFT ownership...`);
 			console.log(`Token Account Balance: ${ownerTokenBalance.value.uiAmount} NFT`);
 			assert.equal(ownerTokenBalance.value.uiAmount, 1, 'Owner should have received 1 NFT');

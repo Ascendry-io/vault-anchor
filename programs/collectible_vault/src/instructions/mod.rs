@@ -1,4 +1,4 @@
-pub mod burn_nft;
+pub mod create_asset_redemption_request;
 pub mod create_collection;
 pub mod mint_nft;
 pub mod stake_nft_for_loan;
