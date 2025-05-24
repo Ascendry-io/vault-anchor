@@ -55,7 +55,7 @@ describe("testing asset redemption", () => {
 
     // Find vault authority PDA
     [vaultAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault")],
+      [Buffer.from("redemption_vault")],
       program.programId
     );
 

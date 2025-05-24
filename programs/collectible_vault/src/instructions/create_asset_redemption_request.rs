@@ -48,7 +48,7 @@ pub struct CreateAssetRedemptionRequest<'info> {
 
     /// CHECK: PDA for vault authority
     #[account(
-        seeds = [b"vault"],
+        seeds = [b"redemption_vault"],
         bump
     )]
     pub vault_authority: UncheckedAccount<'info>,

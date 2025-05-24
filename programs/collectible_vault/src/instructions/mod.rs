@@ -6,3 +6,5 @@ pub mod provide_loan_liquidity;
 pub mod repay_loan;
 pub mod claim_delinquent_nft;
 pub mod cancel_loan_request;
+pub mod request_audit_on_item;
+pub mod complete_audit_on_item;

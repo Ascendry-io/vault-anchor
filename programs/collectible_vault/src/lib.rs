@@ -13,6 +13,8 @@ use {
     instructions::provide_loan_liquidity::*, 
     instructions::repay_loan::*, 
     instructions::claim_delinquent_nft::*,
+    instructions::request_audit_on_item::*,
+    instructions::provide_audit_snapshot::*,
 };
 
 declare_id!("AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6");
@@ -86,5 +88,24 @@ pub mod collectible_vault {
      */
     pub fn cancel_loan_request(ctx: Context<CancelLoanRequest>) -> Result<()> {
         instructions::cancel_loan_request::handle(ctx)
+    }
+
+    /**
+     * Allows users to request an audit for their NFT.
+     * This instruction creates an audit request and transfers the NFT to the program vault.
+     */
+    pub fn request_audit_on_item(ctx: Context<RequestAuditOnItem>) -> Result<()> {
+        instructions::request_audit_on_item::handle(ctx)
+    }
+
+    /**
+     * Allows the admin to provide an audit snapshot for an NFT.
+     * This instruction updates the audit request status and creates an audit snapshot.
+     */
+    pub fn provide_audit_snapshot(
+        ctx: Context<ProvideAuditSnapshot>,
+        image_urls: Vec<String>,
+    ) -> Result<()> {
+        instructions::provide_audit_snapshot::handle(ctx, image_urls)
     }
 }
