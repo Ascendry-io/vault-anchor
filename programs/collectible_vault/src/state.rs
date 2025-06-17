@@ -67,6 +67,8 @@ pub struct AssetRedemptionInfo {
     pub nft_owner: Pubkey,
     /// The timestamp when the redemption request was made.
     pub request_timestamp: i64,
+    /// Indicates whether the redemption request has been fulfilled.
+    pub is_fulfilled: bool,
 }
 
 impl AssetRedemptionInfo {
@@ -74,5 +76,6 @@ impl AssetRedemptionInfo {
     pub const INIT_SPACE: usize = 8 +    // discriminator
         32 +    // nft_mint
         32 +    // nft_owner
-        8;      // request_timestamp
+        8 +     // request_timestamp
+        1;      // is_fulfilled
 }

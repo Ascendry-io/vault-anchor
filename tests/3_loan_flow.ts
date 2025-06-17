@@ -469,5 +469,7 @@ describe('NFT Loan Flow Tests', () => {
 			[nftOwner.publicKey, lender.publicKey],
 			['NFT Owner', 'Lender']
 		);
+
+		console.log('Sending NFT back to original owner...');
 	});
 });

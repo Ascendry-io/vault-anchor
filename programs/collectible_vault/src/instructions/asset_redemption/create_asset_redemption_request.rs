@@ -13,6 +13,7 @@ use {
  * The digital collectible is sent to the program vault permanently; we do not burn the NFT (for archival, sustainability).
  * This instruction creates an AssetRedemptionInfo account and transfers the NFT from the user's token account to the program vault for safekeeping.
  */
+
 #[derive(Accounts)]
 pub struct CreateAssetRedemptionRequest<'info> {
     // PDA account to store loan information, derived from the NFT mint address
@@ -20,7 +21,7 @@ pub struct CreateAssetRedemptionRequest<'info> {
         init,
         payer = owner,
         space = AssetRedemptionInfo::INIT_SPACE,
-        seeds = [b"redemption", nft_mint.key().as_ref()],
+        seeds = [b"asset_redemption_info", nft_mint.key().as_ref()],
         bump
     )]
     pub asset_redemption_info: Account<'info, AssetRedemptionInfo>,
@@ -33,25 +34,25 @@ pub struct CreateAssetRedemptionRequest<'info> {
         mut,
         associated_token::mint = nft_mint,
         associated_token::authority = owner,
-        constraint = owner_nft_account.amount == 1 @ errors::ErrorCode::InvalidNFTAccount
+        constraint = owner_nft_account.amount == 1 @ errors::ErrorCode::AssociatedTokenAccountHasNoTokenBalance
     )]
     pub owner_nft_account: Account<'info, TokenAccount>,
 
-    // Program's vault token account where the NFT will be held during the loan
+    // Program's asset redemption token account where the NFT will be held during the redemption request
     #[account(
         init_if_needed,
         payer = owner,
         associated_token::mint = nft_mint,
-        associated_token::authority = vault_authority,
+        associated_token::authority = asset_redemption_vault,
     )]
-    pub vault_nft_account: Account<'info, TokenAccount>,
+    pub asset_redemption_nft_account: Account<'info, TokenAccount>,
 
-    /// CHECK: PDA for vault authority
+    /// CHECK: PDA for asset redemption authority
     #[account(
-        seeds = [b"vault"],
+        seeds = [b"asset_redemption_vault"],
         bump
     )]
-    pub vault_authority: UncheckedAccount<'info>,
+    pub asset_redemption_vault: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -70,23 +71,24 @@ pub fn handle(ctx: Context<CreateAssetRedemptionRequest>) -> Result<()> {
     asset_redemption_info.nft_mint = ctx.accounts.nft_mint.key();
     asset_redemption_info.nft_owner = ctx.accounts.owner.key();
     asset_redemption_info.request_timestamp = Clock::get()?.unix_timestamp;
+    asset_redemption_info.is_fulfilled = false;
 
-    msg!("Transferring NFT {} to program vault...", ctx.accounts.nft_mint.key());
+    msg!("Transferring NFT {} to program asset redemption account...", ctx.accounts.nft_mint.key());
     
-    // Transfer NFT from owner to program vault for safekeeping
+    // Transfer NFT from owner to program asset redemption account for escrow during fulfillment
     anchor_spl::token::transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             anchor_spl::token::Transfer {
                 from: ctx.accounts.owner_nft_account.to_account_info(),
-                to: ctx.accounts.vault_nft_account.to_account_info(),
+                to: ctx.accounts.asset_redemption_nft_account.to_account_info(),
                 authority: ctx.accounts.owner.to_account_info(),
             },
         ),
         1,
     )?;
 
-    msg!("NFT {} successfully transferred to program vault", ctx.accounts.nft_mint.key());
+    msg!("NFT {} successfully transferred to program asset redemption account", ctx.accounts.nft_mint.key());
 
     Ok(())
 }

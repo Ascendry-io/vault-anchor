@@ -1,5 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import * as dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config();
 
@@ -9,7 +10,7 @@ export const TEST_NFT_INFO = {
 };
 
 // Use local validator RPC endpoint
-export const TEST_RPC_CONNECTION = new Connection('http://127.0.0.1:8899', 'confirmed');
+export const TEST_RPC_CONNECTION = new Connection(process.env.HELIUS_RPC_ENDPOINT!, 'confirmed');
 
 export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'

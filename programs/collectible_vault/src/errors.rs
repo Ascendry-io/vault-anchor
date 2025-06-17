@@ -63,4 +63,20 @@ pub enum ErrorCode {
     /// Thrown when a non-owner attempts to cancel a loan request
     #[msg("Only the loan owner can cancel the loan request")]
     UnauthorizedLoanCancellation,
+
+    /// Thrown when attempting to cancel a redemption request that has already been fulfilled
+    #[msg("Cannot cancel redemption request that has already been fulfilled")]
+    RedemptionRequestAlreadyFulfilled,
+
+    /// Thrown when attempting to cancel a redemption request that is not active
+    #[msg("Redemption request is not active")]
+    RedemptionRequestNotActive,
+
+    /// Thrown when attempting to create / cancel a redemption request for an NFT not owned by the signer
+    #[msg("Only NFT owner create / cancel a redemption request")]
+    UnauthorizedRedemptionRequest,
+
+    /// Thrown when attempting to create a redemption request for an associated token account that has no token balance
+    #[msg("Associated token account has no token balance")]
+    AssociatedTokenAccountHasNoTokenBalance,
 }

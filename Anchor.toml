@@ -5,16 +5,16 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-collectible_vault = "AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6"
+collectible_vault = "HsgWi9YLC6xGPkMyh3wKZysz2awKVas4BUKCQMeC5woR"
 
 [programs.localnet]
-collectible_vault = "AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6"
+collectible_vault = "HsgWi9YLC6xGPkMyh3wKZysz2awKVas4BUKCQMeC5woR"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
