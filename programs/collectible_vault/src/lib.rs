@@ -7,6 +7,7 @@ use {
     anchor_lang::prelude::*, 
     instructions::asset_redemption::create_asset_redemption_request::*,
     instructions::asset_redemption::cancel_asset_redemption_request::*,
+    instructions::asset_redemption::fulfill_asset_redemption_request::*,
     instructions::admin_operations::create_collection::*, 
     instructions::admin_operations::mint_nft::*, 
     instructions::loans::cancel_loan_request::*,
@@ -16,7 +17,7 @@ use {
     instructions::loans::claim_delinquent_nft::*,
 };
 
-declare_id!("HsgWi9YLC6xGPkMyh3wKZysz2awKVas4BUKCQMeC5woR");
+declare_id!("DcLtM1NXbXH5ChXttabuWDw3sUCNo95Xt7LNBLx9Nfha");
 
 #[program]
 pub mod collectible_vault {
@@ -52,6 +53,14 @@ pub mod collectible_vault {
      */
     pub fn cancel_asset_redemption_request(ctx: Context<CancelAssetRedemptionRequest>) -> Result<()> {
         instructions::asset_redemption::cancel_asset_redemption_request::handle(ctx)
+    }
+
+    /**
+     * Allows the admin to fulfill an asset redemption request.
+     * This instruction allows the admin to fulfill an asset redemption request.
+     */
+    pub fn fulfill_asset_redemption_request(ctx: Context<FulfillAssetRedemptionRequest>) -> Result<()> {
+        instructions::asset_redemption::fulfill_asset_redemption_request::handle(ctx)
     }
 
     /**

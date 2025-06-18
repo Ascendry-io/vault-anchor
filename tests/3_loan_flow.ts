@@ -132,7 +132,6 @@ describe('NFT Loan Flow Tests', () => {
 	anchor.setProvider(provider);
 
 	const program = anchor.workspace.CollectibleVault as anchor.Program<CollectibleVault>;
-	console.log(`Program ID: ${program.programId.toString()}`);
 
 	let nftMint: PublicKey;
 	let ownerNftAccount: PublicKey;

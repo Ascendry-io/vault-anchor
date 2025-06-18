@@ -1,2 +1,3 @@
 pub mod create_asset_redemption_request;
 pub mod cancel_asset_redemption_request;
+pub mod fulfill_asset_redemption_request;
