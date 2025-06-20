@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-collectible_vault = "DcLtM1NXbXH5ChXttabuWDw3sUCNo95Xt7LNBLx9Nfha"
+collectible_vault = "AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6"
 
 [programs.localnet]
 collectible_vault = "HsgWi9YLC6xGPkMyh3wKZysz2awKVas4BUKCQMeC5woR"
