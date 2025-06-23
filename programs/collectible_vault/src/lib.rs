@@ -4,20 +4,17 @@ pub mod instructions;
 pub mod state;
 
 use {
-    anchor_lang::prelude::*, 
-    instructions::asset_redemption::create_asset_redemption_request::*,
+    anchor_lang::prelude::*, instructions::admin_operations::create_collection::*,
+    instructions::admin_operations::mint_nft::*,
     instructions::asset_redemption::cancel_asset_redemption_request::*,
+    instructions::asset_redemption::create_asset_redemption_request::*,
     instructions::asset_redemption::fulfill_asset_redemption_request::*,
-    instructions::admin_operations::create_collection::*, 
-    instructions::admin_operations::mint_nft::*, 
-    instructions::loans::cancel_loan_request::*,
+    instructions::loans::cancel_loan_request::*, instructions::loans::claim_delinquent_nft::*,
+    instructions::loans::provide_loan_liquidity::*, instructions::loans::repay_loan::*,
     instructions::loans::stake_nft_for_loan::*,
-    instructions::loans::provide_loan_liquidity::*, 
-    instructions::loans::repay_loan::*, 
-    instructions::loans::claim_delinquent_nft::*,
 };
 
-declare_id!("AhxqpDiUNUnFPZp8goT9YZv9H1Zhwf75RUsruiigu3T6");
+declare_id!("8G4KcKxZZmXikmw5i3irw9ogKWS2E61vMgwovcJ4tdbr");
 
 #[program]
 pub mod collectible_vault {
@@ -43,7 +40,9 @@ pub mod collectible_vault {
      * Creates a new asset redemption request for a digital collectible.
      * This instruction allows a user to create a redemption request for their digital collectible.
      */
-    pub fn create_asset_redemption_request(ctx: Context<CreateAssetRedemptionRequest>) -> Result<()> {
+    pub fn create_asset_redemption_request(
+        ctx: Context<CreateAssetRedemptionRequest>,
+    ) -> Result<()> {
         instructions::asset_redemption::create_asset_redemption_request::handle(ctx)
     }
 
@@ -51,7 +50,9 @@ pub mod collectible_vault {
      * Allows an NFT owner to cancel their asset redemption request.
      * This instruction allows a user to cancel their asset redemption request.
      */
-    pub fn cancel_asset_redemption_request(ctx: Context<CancelAssetRedemptionRequest>) -> Result<()> {
+    pub fn cancel_asset_redemption_request(
+        ctx: Context<CancelAssetRedemptionRequest>,
+    ) -> Result<()> {
         instructions::asset_redemption::cancel_asset_redemption_request::handle(ctx)
     }
 
@@ -59,7 +60,9 @@ pub mod collectible_vault {
      * Allows the admin to fulfill an asset redemption request.
      * This instruction allows the admin to fulfill an asset redemption request.
      */
-    pub fn fulfill_asset_redemption_request(ctx: Context<FulfillAssetRedemptionRequest>) -> Result<()> {
+    pub fn fulfill_asset_redemption_request(
+        ctx: Context<FulfillAssetRedemptionRequest>,
+    ) -> Result<()> {
         instructions::asset_redemption::fulfill_asset_redemption_request::handle(ctx)
     }
 
@@ -70,7 +73,12 @@ pub mod collectible_vault {
      * - interest_rate: The interest rate for the loan.
      * - duration: The duration of the loan in seconds.
      */
-    pub fn stake_nft_for_loan(ctx: Context<StakeNftForLoan>, loan_amount: u64, interest_rate: u64, duration: i64) -> Result<()> {
+    pub fn stake_nft_for_loan(
+        ctx: Context<StakeNftForLoan>,
+        loan_amount: u64,
+        interest_rate: u64,
+        duration: i64,
+    ) -> Result<()> {
         instructions::loans::stake_nft_for_loan::handle(ctx, loan_amount, interest_rate, duration)
     }
 

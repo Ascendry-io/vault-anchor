@@ -10,7 +10,7 @@ import { CollectibleVault } from '../target/types/collectible_vault';
 import { assert } from 'chai';
 import { getCollectionAddress, getNftAddress } from '../utils/collection_store';
 import { formatSOL, logBalances, getBalances, logBalanceChanges } from './test-utils';
-import { TEST_RPC_CONNECTION } from './constants';
+import { SEED_PDA_CONSTANTS, TEST_RPC_CONNECTION } from './constants';
 
 async function stakeNftForLoan(
 	program: anchor.Program<CollectibleVault>,
@@ -157,7 +157,7 @@ describe('NFT Loan Flow Tests', () => {
 
 		// Derive vault authority PDA
 		[vaultAuthority] = await PublicKey.findProgramAddressSync(
-			[Buffer.from('vault')],
+			[Buffer.from(SEED_PDA_CONSTANTS.VAULT)],
 			program.programId
 		);
 		console.log(`Vault Authority PDA: ${vaultAuthority.toString()}`);
@@ -172,7 +172,7 @@ describe('NFT Loan Flow Tests', () => {
 
 		// Derive loan info PDA
 		[loanInfoPDA] = await PublicKey.findProgramAddressSync(
-			[Buffer.from('loan'), nftMint.toBuffer()],
+			[Buffer.from(SEED_PDA_CONSTANTS.LOAN_INFO), nftMint.toBuffer()],
 			program.programId
 		);
 		console.log(`Loan Info PDA: ${loanInfoPDA.toString()}`);

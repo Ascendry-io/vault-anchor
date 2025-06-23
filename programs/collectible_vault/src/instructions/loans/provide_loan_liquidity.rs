@@ -1,5 +1,5 @@
 use {
-    crate::{errors, state::LoanInfo},
+    crate::{constants::pda_constants::LOAN_INFO_SEED, errors, state::LoanInfo},
     anchor_lang::prelude::*,
 };
 
@@ -12,7 +12,7 @@ pub struct ProvideLoanLiquidity<'info> {
     // Loan request account that will be updated with lender information
     #[account(
         mut,
-        seeds = [b"loan", loan_info.nft_mint.as_ref()],
+        seeds = [LOAN_INFO_SEED, loan_info.nft_mint.as_ref()],
         bump,
         constraint = !loan_info.is_active @ errors::ErrorCode::LoanAlreadyActive,
         constraint = loan_info.loan_amount <= lender.lamports() @ errors::ErrorCode::InsufficientFunds
@@ -36,7 +36,7 @@ pub struct ProvideLoanLiquidity<'info> {
 
 pub fn handle(ctx: Context<ProvideLoanLiquidity>) -> Result<()> {
     let loan_info = &mut ctx.accounts.loan_info;
-    
+
     // Transfer loan amount from lender to borrower
     anchor_lang::system_program::transfer(
         CpiContext::new(
@@ -55,4 +55,4 @@ pub fn handle(ctx: Context<ProvideLoanLiquidity>) -> Result<()> {
     loan_info.is_active = true;
 
     Ok(())
-} 
+}

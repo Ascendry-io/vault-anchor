@@ -1,9 +1,13 @@
 use {
-    crate::{errors, state::LoanInfo},
+    crate::{
+        constants::pda_constants::{LOAN_INFO_SEED, VAULT_SEED},
+        errors,
+        state::LoanInfo,
+    },
     anchor_lang::prelude::*,
     anchor_spl::{
-        token::{Mint, Token, TokenAccount},
         associated_token::AssociatedToken,
+        token::{Mint, Token, TokenAccount},
     },
 };
 
@@ -16,7 +20,7 @@ pub struct RepayLoan<'info> {
     // Loan account that will be closed after repayment
     #[account(
         mut,
-        seeds = [b"loan", nft_mint.key().as_ref()],
+        seeds = [LOAN_INFO_SEED, nft_mint.key().as_ref()],
         bump,
         constraint = loan_info.is_active @ errors::ErrorCode::LoanNotActive,
         constraint = borrower.key() == loan_info.nft_owner @ errors::ErrorCode::InvalidBorrower,
@@ -47,7 +51,7 @@ pub struct RepayLoan<'info> {
 
     /// CHECK: PDA for vault authority
     #[account(
-        seeds = [b"vault"],
+        seeds = [VAULT_SEED],
         bump
     )]
     pub vault_authority: UncheckedAccount<'info>,
@@ -74,7 +78,9 @@ pub fn handle(ctx: Context<RepayLoan>) -> Result<()> {
     let loan_info = &ctx.accounts.loan_info;
 
     // Calculate total repayment amount (principal + interest)
-    let total_repayment = loan_info.loan_amount.checked_add(loan_info.interest_amount)
+    let total_repayment = loan_info
+        .loan_amount
+        .checked_add(loan_info.interest_amount)
         .ok_or(errors::ErrorCode::CalculationError)?;
 
     // Transfer repayment amount from borrower to lender
@@ -91,10 +97,7 @@ pub fn handle(ctx: Context<RepayLoan>) -> Result<()> {
 
     // Transfer NFT from vault back to borrower
     let vault_bump = ctx.bumps.vault_authority;
-    let nft_seeds = &[
-        b"vault".as_ref(),
-        &[vault_bump]
-    ];
+    let nft_seeds = &[VAULT_SEED.as_ref(), &[vault_bump]];
     let signer = &[&nft_seeds[..]];
 
     anchor_spl::token::transfer(
@@ -111,4 +114,4 @@ pub fn handle(ctx: Context<RepayLoan>) -> Result<()> {
     )?;
 
     Ok(())
-} 
+}

@@ -1,6 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import * as dotenv from 'dotenv';
-import path from 'path';
 
 dotenv.config();
 
@@ -15,3 +14,11 @@ export const TEST_RPC_CONNECTION = new Connection(process.env.HELIUS_RPC_ENDPOIN
 export const METADATA_PROGRAM_ID: PublicKey = new PublicKey(
 	'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
 );
+
+export const SEED_PDA_CONSTANTS = {
+	COLLECTION_COUNTER: 'vault_collection_counter',
+	LOAN_INFO: 'loan',
+	VAULT: 'vault',
+	ASSET_REDEMPTION_INFO: 'asset_redemption_info',
+	ASSET_REDEMPTION_VAULT: 'asset_redemption_vault',
+}

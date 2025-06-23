@@ -1,9 +1,13 @@
 use {
-    crate::{errors, state::LoanInfo},
+    crate::{
+        constants::pda_constants::{LOAN_INFO_SEED, VAULT_SEED},
+        errors,
+        state::LoanInfo,
+    },
     anchor_lang::prelude::*,
     anchor_spl::{
-        token::{Mint, Token, TokenAccount},
         associated_token::AssociatedToken,
+        token::{Mint, Token, TokenAccount},
     },
 };
 
@@ -18,7 +22,7 @@ pub struct StakeNftForLoan<'info> {
         init,
         payer = owner,
         space = LoanInfo::INIT_SPACE,
-        seeds = [b"loan", nft_mint.key().as_ref()],
+        seeds = [LOAN_INFO_SEED, nft_mint.key().as_ref()],
         bump
     )]
     pub loan_info: Account<'info, LoanInfo>,
@@ -46,7 +50,7 @@ pub struct StakeNftForLoan<'info> {
 
     /// CHECK: PDA for vault authority
     #[account(
-        seeds = [b"vault"],
+        seeds = [VAULT_SEED],
         bump
     )]
     pub vault_authority: UncheckedAccount<'info>,
@@ -93,4 +97,4 @@ pub fn handle(
     )?;
 
     Ok(())
-} 
+}

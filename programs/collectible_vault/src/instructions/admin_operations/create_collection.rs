@@ -1,5 +1,7 @@
 use {
-    crate::{constants::get_admin_account_pubkey, errors, state::CollectionCounter},
+    crate::{
+        constants::admin_constants::get_admin_account_pubkey, errors, state::CollectionCounter,
+    },
     anchor_lang::prelude::*,
     anchor_spl::{
         associated_token::AssociatedToken,

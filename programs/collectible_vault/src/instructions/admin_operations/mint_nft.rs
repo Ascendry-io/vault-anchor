@@ -1,6 +1,12 @@
-use anchor_lang::prelude::*;
 use {
-    crate::{constants::get_admin_account_pubkey, errors, state::CollectionCounter},
+    crate::{
+        constants::{
+            admin_constants::get_admin_account_pubkey, pda_constants::VAULT_COLLECTION_COUNTER_SEED,
+        },
+        errors,
+        state::CollectionCounter,
+    },
+    anchor_lang::prelude::*,
     anchor_spl::{
         associated_token::AssociatedToken,
         token::{Mint, Token, TokenAccount},
@@ -66,7 +72,7 @@ pub struct MintNFT<'info> {
 
     #[account(
         mut,
-        seeds = [b"vault_collection_counter"],
+        seeds = [VAULT_COLLECTION_COUNTER_SEED],
         bump,
         constraint = collection_counter.collection_mint == collection_mint.key() @ errors::ErrorCode::CollectionMintDoesNotMatch
     )]

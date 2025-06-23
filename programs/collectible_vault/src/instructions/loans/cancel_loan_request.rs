@@ -1,9 +1,13 @@
 use {
-    crate::{errors, state::LoanInfo},
+    crate::{
+        constants::pda_constants::{LOAN_INFO_SEED, VAULT_SEED},
+        errors,
+        state::LoanInfo,
+    },
     anchor_lang::prelude::*,
     anchor_spl::{
-        token::{Mint, Token, TokenAccount},
         associated_token::AssociatedToken,
+        token::{Mint, Token, TokenAccount},
     },
 };
 
@@ -18,7 +22,7 @@ pub struct CancelLoanRequest<'info> {
 
     #[account(
         mut,
-        seeds = [b"loan", nft_mint.key().as_ref()],
+        seeds = [LOAN_INFO_SEED, nft_mint.key().as_ref()],
         bump,
         constraint = loan_info.nft_owner == owner.key() @ errors::ErrorCode::UnauthorizedLoanCancellation,
         constraint = loan_info.lender.is_none() @ errors::ErrorCode::LoanAlreadyFunded,
@@ -45,7 +49,7 @@ pub struct CancelLoanRequest<'info> {
 
     /// CHECK: PDA for vault authority
     #[account(
-        seeds = [b"vault"],
+        seeds = [VAULT_SEED],
         bump
     )]
     pub vault_authority: UncheckedAccount<'info>,
@@ -57,10 +61,7 @@ pub struct CancelLoanRequest<'info> {
 
 pub fn handle(ctx: Context<CancelLoanRequest>) -> Result<()> {
     let vault_bump = ctx.bumps.vault_authority;
-    let seeds = &[
-        b"vault".as_ref(),
-        &[vault_bump]
-    ];
+    let seeds = &[VAULT_SEED.as_ref(), &[vault_bump]];
     let signer = &[&seeds[..]];
 
     // Transfer NFT back to owner
@@ -78,17 +79,15 @@ pub fn handle(ctx: Context<CancelLoanRequest>) -> Result<()> {
     )?;
 
     // Close the vault's token account
-    anchor_spl::token::close_account(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            anchor_spl::token::CloseAccount {
-                account: ctx.accounts.vault_nft_account.to_account_info(),
-                destination: ctx.accounts.owner.to_account_info(),
-                authority: ctx.accounts.vault_authority.to_account_info(),
-            },
-            signer,
-        ),
-    )?;
+    anchor_spl::token::close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        anchor_spl::token::CloseAccount {
+            account: ctx.accounts.vault_nft_account.to_account_info(),
+            destination: ctx.accounts.owner.to_account_info(),
+            authority: ctx.accounts.vault_authority.to_account_info(),
+        },
+        signer,
+    ))?;
 
     Ok(())
-} 
+}

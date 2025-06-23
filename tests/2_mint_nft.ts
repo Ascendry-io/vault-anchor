@@ -16,7 +16,7 @@ import idl from '../target/idl/collectible_vault.json'; // Import the IDL JSON
 import { CollectibleVault } from '../target/types/collectible_vault'; // Import TypeScript types
 import { assert } from 'chai';
 import { getCollectionAddress, saveNftMintAddress } from '../utils/collection_store';
-import { TEST_RPC_CONNECTION, TEST_NFT_INFO, METADATA_PROGRAM_ID } from './constants';
+import { TEST_RPC_CONNECTION, TEST_NFT_INFO, METADATA_PROGRAM_ID, SEED_PDA_CONSTANTS } from './constants';
 import { formatSOL } from './test-utils';
 
 // Helper to log account information
@@ -91,7 +91,7 @@ describe('NFT Minting Integration Tests', () => {
 		console.log(`Collection Master Edition PDA: ${masterEditionAddress.toString()}`);
 
 		[collectionCounterPDA] = await PublicKey.findProgramAddress(
-			[Buffer.from('vault_collection_counter')],
+			[Buffer.from(SEED_PDA_CONSTANTS.COLLECTION_COUNTER)],
 			program.programId
 		);
 		console.log(`Collection Counter PDA: ${collectionCounterPDA.toString()}`);

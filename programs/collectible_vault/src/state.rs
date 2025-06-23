@@ -55,7 +55,7 @@ impl LoanInfo {
         8 +     // duration
         9 +     // start_time (Option)
         33 +    // lender (Option)
-        1;      // is_active
+        1; // is_active
 }
 
 #[account]
@@ -77,5 +77,5 @@ impl AssetRedemptionInfo {
         32 +    // nft_mint
         32 +    // nft_owner
         8 +     // request_timestamp
-        1;      // is_fulfilled
+        1; // is_fulfilled
 }

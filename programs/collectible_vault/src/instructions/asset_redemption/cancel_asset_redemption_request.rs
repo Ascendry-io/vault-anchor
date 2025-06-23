@@ -1,9 +1,13 @@
 use {
-    crate::{errors, state::AssetRedemptionInfo},
+    crate::{
+        constants::pda_constants::{ASSET_REDEMPTION_INFO_SEED, ASSET_REDEMPTION_VAULT_SEED},
+        errors,
+        state::AssetRedemptionInfo,
+    },
     anchor_lang::prelude::*,
     anchor_spl::{
-        token::{Mint, Token, TokenAccount},
         associated_token::AssociatedToken,
+        token::{Mint, Token, TokenAccount},
     },
 };
 
@@ -16,7 +20,7 @@ pub struct CancelAssetRedemptionRequest<'info> {
     // PDA account to store loan information, derived from the NFT mint address
     #[account(
         mut,
-        seeds = [b"asset_redemption_info", nft_mint.key().as_ref()],
+        seeds = [ASSET_REDEMPTION_INFO_SEED, nft_mint.key().as_ref()],
         bump,
         constraint = asset_redemption_info.nft_owner == owner.key() @ errors::ErrorCode::UnauthorizedRedemptionRequest,
         constraint = !asset_redemption_info.is_fulfilled @ errors::ErrorCode::RedemptionRequestAlreadyFulfilled,
@@ -42,7 +46,7 @@ pub struct CancelAssetRedemptionRequest<'info> {
 
     /// CHECK: PDA for asset redemption authority
     #[account(
-        seeds = [b"asset_redemption_vault"],
+        seeds = [ASSET_REDEMPTION_VAULT_SEED],
         bump
     )]
     pub asset_redemption_vault: UncheckedAccount<'info>,
@@ -56,10 +60,7 @@ pub struct CancelAssetRedemptionRequest<'info> {
 
 pub fn handle(ctx: Context<CancelAssetRedemptionRequest>) -> Result<()> {
     let asset_redemption_bump = ctx.bumps.asset_redemption_vault;
-    let seeds = &[
-        b"asset_redemption_vault".as_ref(),
-        &[asset_redemption_bump]
-    ];
+    let seeds = &[ASSET_REDEMPTION_VAULT_SEED, &[asset_redemption_bump]];
     let signer = &[&seeds[..]];
 
     // Transfer NFT back to owner
@@ -76,22 +77,23 @@ pub fn handle(ctx: Context<CancelAssetRedemptionRequest>) -> Result<()> {
         1,
     )?;
 
-    msg!("Transferring NFT {} back to owner...", ctx.accounts.nft_mint.key());
+    msg!(
+        "Transferring NFT {} back to owner...",
+        ctx.accounts.nft_mint.key()
+    );
 
     // Close the vault's token account
-    anchor_spl::token::close_account(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            anchor_spl::token::CloseAccount {
-                account: ctx.accounts.asset_redemption_nft_account.to_account_info(),
-                destination: ctx.accounts.owner.to_account_info(),
-                authority: ctx.accounts.asset_redemption_vault.to_account_info(),
-            },
-            signer,
-        ),
-    )?;
+    anchor_spl::token::close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        anchor_spl::token::CloseAccount {
+            account: ctx.accounts.asset_redemption_nft_account.to_account_info(),
+            destination: ctx.accounts.owner.to_account_info(),
+            authority: ctx.accounts.asset_redemption_vault.to_account_info(),
+        },
+        signer,
+    ))?;
 
     msg!("Closed asset redemption account");
 
     Ok(())
-} 
+}

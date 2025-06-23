@@ -1,9 +1,13 @@
 use {
-    crate::{errors, state::LoanInfo},
+    crate::{
+        constants::pda_constants::{LOAN_INFO_SEED, VAULT_SEED},
+        errors,
+        state::LoanInfo,
+    },
     anchor_lang::prelude::*,
     anchor_spl::{
-        token::{Mint, Token, TokenAccount},
         associated_token::AssociatedToken,
+        token::{Mint, Token, TokenAccount},
     },
 };
 
@@ -16,7 +20,7 @@ pub struct ClaimDelinquentNft<'info> {
     // Loan account that will be closed after claiming the NFT
     #[account(
         mut,
-        seeds = [b"loan", nft_mint.key().as_ref()],
+        seeds = [LOAN_INFO_SEED, nft_mint.key().as_ref()],
         bump,
         constraint = loan_info.is_active @ errors::ErrorCode::LoanNotActive,
         constraint = lender.key() == loan_info.lender.unwrap() @ errors::ErrorCode::InvalidLender,
@@ -47,7 +51,7 @@ pub struct ClaimDelinquentNft<'info> {
 
     /// CHECK: PDA for vault authority
     #[account(
-        seeds = [b"vault"],
+        seeds = [VAULT_SEED],
         bump
     )]
     pub vault_authority: UncheckedAccount<'info>,
@@ -65,10 +69,7 @@ pub struct ClaimDelinquentNft<'info> {
 pub fn handle(ctx: Context<ClaimDelinquentNft>) -> Result<()> {
     // Transfer NFT from vault to lender
     let vault_bump = ctx.bumps.vault_authority;
-    let nft_seeds = &[
-        b"vault".as_ref(),
-        &[vault_bump]
-    ];
+    let nft_seeds = &[VAULT_SEED.as_ref(), &[vault_bump]];
     let signer = &[&nft_seeds[..]];
 
     anchor_spl::token::transfer(
@@ -85,4 +86,4 @@ pub fn handle(ctx: Context<ClaimDelinquentNft>) -> Result<()> {
     )?;
 
     Ok(())
-} 
+}

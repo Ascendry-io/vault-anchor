@@ -10,7 +10,7 @@ import {
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { expect } from 'chai';
 import { PAYER_KEYPAIR, ALTERNATIVE_PAYER_KEYPAIR } from '../utils/testing-keypairs';
-import { TEST_RPC_CONNECTION } from './constants';
+import { SEED_PDA_CONSTANTS, TEST_RPC_CONNECTION } from './constants';
 import { mintNft } from './mint_nft_util';
 
 describe('testing asset redemption', () => {
@@ -38,13 +38,13 @@ describe('testing asset redemption', () => {
 
 		// Find vault authority PDA
 		[vaultAuthority] = PublicKey.findProgramAddressSync(
-			[Buffer.from('asset_redemption_vault')],
+			[Buffer.from(SEED_PDA_CONSTANTS.ASSET_REDEMPTION_VAULT)],
 			program.programId
 		);
 
 		// Find asset redemption info PDA
 		[assetRedemptionInfo] = PublicKey.findProgramAddressSync(
-			[Buffer.from('asset_redemption_info'), nftMint.toBuffer()],
+			[Buffer.from(SEED_PDA_CONSTANTS.ASSET_REDEMPTION_INFO), nftMint.toBuffer()],
 			program.programId
 		);
 

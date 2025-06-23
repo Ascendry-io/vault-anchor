@@ -1,9 +1,13 @@
 use {
-    crate::{errors, state::AssetRedemptionInfo},
+    crate::{
+        constants::pda_constants::{ASSET_REDEMPTION_INFO_SEED, ASSET_REDEMPTION_VAULT_SEED},
+        errors,
+        state::AssetRedemptionInfo,
+    },
     anchor_lang::prelude::*,
     anchor_spl::{
-        token::{Mint, Token, TokenAccount},
         associated_token::AssociatedToken,
+        token::{Mint, Token, TokenAccount},
     },
 };
 
@@ -21,7 +25,7 @@ pub struct CreateAssetRedemptionRequest<'info> {
         init,
         payer = owner,
         space = AssetRedemptionInfo::INIT_SPACE,
-        seeds = [b"asset_redemption_info", nft_mint.key().as_ref()],
+        seeds = [ASSET_REDEMPTION_INFO_SEED, nft_mint.key().as_ref()],
         bump
     )]
     pub asset_redemption_info: Account<'info, AssetRedemptionInfo>,
@@ -49,7 +53,7 @@ pub struct CreateAssetRedemptionRequest<'info> {
 
     /// CHECK: PDA for asset redemption authority
     #[account(
-        seeds = [b"asset_redemption_vault"],
+        seeds = [ASSET_REDEMPTION_VAULT_SEED],
         bump
     )]
     pub asset_redemption_vault: UncheckedAccount<'info>,
@@ -63,7 +67,10 @@ pub struct CreateAssetRedemptionRequest<'info> {
 }
 
 pub fn handle(ctx: Context<CreateAssetRedemptionRequest>) -> Result<()> {
-    msg!("Creating asset redemption request for NFT: {}", ctx.accounts.nft_mint.key());
+    msg!(
+        "Creating asset redemption request for NFT: {}",
+        ctx.accounts.nft_mint.key()
+    );
     msg!("Owner: {}", ctx.accounts.owner.key());
 
     // Create the AssetRedemptionInfo account
@@ -73,8 +80,11 @@ pub fn handle(ctx: Context<CreateAssetRedemptionRequest>) -> Result<()> {
     asset_redemption_info.request_timestamp = Clock::get()?.unix_timestamp;
     asset_redemption_info.is_fulfilled = false;
 
-    msg!("Transferring NFT {} to program asset redemption account...", ctx.accounts.nft_mint.key());
-    
+    msg!(
+        "Transferring NFT {} to program asset redemption account...",
+        ctx.accounts.nft_mint.key()
+    );
+
     // Transfer NFT from owner to program asset redemption account for escrow during fulfillment
     anchor_spl::token::transfer(
         CpiContext::new(
@@ -88,7 +98,10 @@ pub fn handle(ctx: Context<CreateAssetRedemptionRequest>) -> Result<()> {
         1,
     )?;
 
-    msg!("NFT {} successfully transferred to program asset redemption account", ctx.accounts.nft_mint.key());
+    msg!(
+        "NFT {} successfully transferred to program asset redemption account",
+        ctx.accounts.nft_mint.key()
+    );
 
     Ok(())
 }

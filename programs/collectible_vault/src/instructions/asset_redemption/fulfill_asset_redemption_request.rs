@@ -1,12 +1,13 @@
 use {
     crate::{
-        errors, 
+        constants::{
+            admin_constants::get_admin_account_pubkey, pda_constants::ASSET_REDEMPTION_INFO_SEED,
+        },
+        errors,
         state::AssetRedemptionInfo,
-        constants::get_admin_account_pubkey},
-    anchor_lang::prelude::*,
-    anchor_spl::{
-        token::Mint,
     },
+    anchor_lang::prelude::*,
+    anchor_spl::token::Mint,
 };
 
 /**
@@ -20,7 +21,7 @@ pub struct FulfillAssetRedemptionRequest<'info> {
     // PDA account to store loan information, derived from the NFT mint address
     #[account(
         mut,
-        seeds = [b"asset_redemption_info", nft_mint.key().as_ref()],
+        seeds = [ASSET_REDEMPTION_INFO_SEED, nft_mint.key().as_ref()],
         bump,
         constraint = !asset_redemption_info.is_fulfilled @ errors::ErrorCode::RedemptionRequestAlreadyFulfilled,
     )]
@@ -38,12 +39,18 @@ pub struct FulfillAssetRedemptionRequest<'info> {
 }
 
 pub fn handle(ctx: Context<FulfillAssetRedemptionRequest>) -> Result<()> {
-    msg!("Fulfilling asset redemption request for NFT: {}", ctx.accounts.nft_mint.key());
+    msg!(
+        "Fulfilling asset redemption request for NFT: {}",
+        ctx.accounts.nft_mint.key()
+    );
 
     let asset_redemption_info = &mut ctx.accounts.asset_redemption_info;
     asset_redemption_info.is_fulfilled = true;
 
-    msg!("Marked asset redemption request for NFT {} as fulfilled", ctx.accounts.nft_mint.key());
+    msg!(
+        "Marked asset redemption request for NFT {} as fulfilled",
+        ctx.accounts.nft_mint.key()
+    );
 
     Ok(())
 }
